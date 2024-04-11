@@ -2,27 +2,25 @@ package com.adenabrasil.pdfview;
 
 import static java.sql.DriverManager.println;
 
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.parser.PdfTextExtractor;
 import java.io.IOException;
-import android.content.res.AssetManager;
+import android.net.Uri;
 import android.text.method.ScrollingMovementMethod;
 
 public class Pdf extends AppCompatActivity {
-    private AssetManager assetManager;
     private TextView textView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pdf);
-
-        // Inicializando o AssetManager
-        assetManager = getAssets();
 
         // Referenciando a TextView
         textView = findViewById(R.id.textView);
@@ -32,7 +30,8 @@ public class Pdf extends AppCompatActivity {
         StringBuilder parsedText = new StringBuilder();
         try {
             // Carregando o documento PDF
-            PdfReader reader = new PdfReader(assetManager.open("o-pequeno-principe.pdf"));
+            Uri uri = Uri.parse(getIntent().getStringExtra("pdfUri"));
+            PdfReader reader = new PdfReader(getContentResolver().openInputStream(uri));
 
             // Extraindo o texto do PDF
             int numberOfPages = reader.getNumberOfPages();
@@ -52,6 +51,3 @@ public class Pdf extends AppCompatActivity {
         textView.setText(parsedText.toString());
     }
 }
-
-
-
