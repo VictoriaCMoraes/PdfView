@@ -41,5 +41,6 @@ dependencies {
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     implementation("com.itextpdf:itextg:5.5.10")
     implementation("androidx.webkit:webkit:1.10.0")
+    implementation("com.google.code.gson:gson:2.10.1")
 
 }
