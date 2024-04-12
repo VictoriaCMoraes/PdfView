@@ -2,16 +2,16 @@ package com.adenabrasil.pdfview;
 
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.TextView;
+import android.util.TypedValue;
+import android.webkit.WebView;
+
+import androidx.annotation.ColorInt;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.parser.PdfTextExtractor;
 import java.io.IOException;
 import java.io.InputStream;
 import android.net.Uri;
-import android.text.method.ScrollingMovementMethod;
-
 public class Pdf extends AppCompatActivity {
 
     @Override
@@ -19,14 +19,18 @@ public class Pdf extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pdf);
 
-        TextView textView;
+        // Referenciando o WebView
+        WebView webView = findViewById(R.id.webview);
 
-        // Referenciando a TextView
-        textView = findViewById(R.id.textView);
+        // Definindo a cor de fundo da WebView
+        //webView.setBackgroundColor(getResources().getColor(R.color.beige));
 
-        textView.setMovementMethod(new ScrollingMovementMethod());
+        TypedValue typedValue = new TypedValue();
+        getTheme().resolveAttribute(android.R.attr.windowBackground, typedValue, true);
+        @ColorInt int backgroundColor = typedValue.data;
 
-        textView.setBackgroundColor(ContextCompat.getColor(this, R.color.beige));
+        // Definindo a cor de fundo da WebView para a cor do tema
+        webView.setBackgroundColor(backgroundColor);
 
         StringBuilder parsedText = new StringBuilder();
 
@@ -42,11 +46,11 @@ public class Pdf extends AppCompatActivity {
                 int numberOfPages = reader.getNumberOfPages();
                 for (int i = 1; i <= numberOfPages; i++) {
                     String pageText = PdfTextExtractor.getTextFromPage(reader, i); // Extrai o texto da página i
-                    // Remove quebras de linha desnecessárias
-                    pageText = pageText.replace("\n", " ");
-                    pageText = pageText.replace("   ", "\n");
+                    // Adicionando a tag <p> para cada parágrafo
+                    pageText = pageText.replaceAll("(?m)(^\\s*$\\n)", "<p>");
                     parsedText.append(pageText);
                 }
+
                 reader.close();
             } else {
                 Log.e("PdfBox-Android-Sample", "InputStream is null");
@@ -55,7 +59,19 @@ public class Pdf extends AppCompatActivity {
             Log.e("PdfBox-Android-Sample", "Exception thrown while loading or reading PDF", e);
         }
 
-        // Exibindo o texto extraído na TextView
-        textView.setText(parsedText.toString());
+        String hexBackgroundColor = String.format("#%06X", (0xFFFFFF & backgroundColor));
+
+        // Verificando se a cor de fundo da WebView é #808080
+        boolean isBackgroundBeige = (hexBackgroundColor.equals("#FFFFDF"));
+
+        // Definindo a cor do texto com base na cor de fundo da WebView
+        String textColor = isBackgroundBeige ? "black" : "white"; // Branco se o fundo for cinza, preto caso contrário
+
+        // Criando uma string HTML para justificar o texto e permitir que as palavras sejam quebradas em várias linhas
+        String htmlText = "<html><head><style>body {text-align: justify; word-wrap: break-word; font-size: 20px; color: %s;}</style></head><body>%s</body></html>";
+        String data = String.format(htmlText, textColor, parsedText);
+
+        // Carregando o texto justificado no WebView
+        webView.loadDataWithBaseURL(null, data, "text/html", "UTF-8", null);
     }
 }
