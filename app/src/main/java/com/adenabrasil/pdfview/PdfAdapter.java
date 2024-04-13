@@ -27,7 +27,7 @@ public class PdfAdapter extends RecyclerView.Adapter<PdfAdapter.ViewHolder> {
     }
 
     public interface OnPdfClickListener {
-        void onPdfClick(Uri pdfUri);
+        void onPdfClick(int position);
     }
 
     public void setOnPdfClickListener(OnPdfClickListener listener) {
@@ -52,13 +52,7 @@ public class PdfAdapter extends RecyclerView.Adapter<PdfAdapter.ViewHolder> {
             // Define um ouvinte de clique para o item da lista
             holder.itemView.setOnClickListener(view -> {
                 if (onPdfClickListener != null) {
-                    // Verifica se a posição está dentro dos limites da lista pdfUris
-                    if (position >= 0 && position < pdfUris.size()) {
-                        // Obtém o URI do PDF com base na posição
-                        Uri pdfUri = pdfUris.get(position);
-                        // Chama o método de clique do ouvinte
-                        onPdfClickListener.onPdfClick(pdfUri);
-                    }
+                    onPdfClickListener.onPdfClick(holder.getAdapterPosition());
                 }
             });
         }
@@ -78,4 +72,3 @@ public class PdfAdapter extends RecyclerView.Adapter<PdfAdapter.ViewHolder> {
         }
     }
 }
-

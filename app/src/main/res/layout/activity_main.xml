@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#B19CD9"
     tools:context=".MainActivity">
 
     <Button
@@ -12,9 +13,11 @@
         android:layout_height="65dp"
         android:layout_marginTop="5dp"
         android:layout_marginBottom="5dp"
+        android:backgroundTint="#673AB7"
         android:fontFamily="sans-serif-smallcaps"
         android:textAlignment="center"
         android:textSize="45dp"
+        app:barrierMargin="2dp"
         app:icon="@drawable/mais"
         app:iconPadding="30dp"
         app:layout_constraintBottom_toBottomOf="parent"
