@@ -3,6 +3,9 @@ package com.adenabrasil.pdfview;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.room.Room;
 
 import android.content.Context;
 import android.content.Intent;
@@ -10,20 +13,20 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.provider.OpenableColumns;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.Toast;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import android.widget.Toast;
-
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.parser.PdfTextExtractor;
@@ -33,13 +36,17 @@ public class MainActivity extends AppCompatActivity {
     private PdfAdapter pdfAdapter;
     private List<Uri> pdfUris;
     private List<String> pdfContents = new ArrayList<>();
+    private AppDatabase db;
+    private ExecutorService executor = Executors.newSingleThreadExecutor();
+    private Handler handler = new Handler(Looper.getMainLooper());
+
     private final ActivityResultLauncher<String> mGetContent = registerForActivityResult(
             new ActivityResultContracts.GetContent(),
             uri -> {
                 if (uri != null) {
                     String pdfName = getFileNameFromUri(uri);
                     if (pdfName != null) {
-                        if (!pdfUris.contains(uri)) {
+                        if (!pdfNames.contains(pdfName)) {
                             pdfUris.add(uri);
                             pdfNames.add(pdfName);
                             StringBuilder parsedText = new StringBuilder();
@@ -62,6 +69,18 @@ public class MainActivity extends AppCompatActivity {
                             }
                             pdfContents.add(parsedText.toString());
                             pdfAdapter.notifyDataSetChanged();
+
+                            executor.execute(new Runnable() {
+                                @Override
+                                public void run() {
+                                    // Save the title and content to the database
+                                    PdfContent pdfContent = new PdfContent();
+                                    pdfContent.title = pdfName;
+                                    pdfContent.content = parsedText.toString();
+                                    db.pdfContentDao().insert(pdfContent);
+                                }
+                            });
+
                             Intent intent = new Intent(MainActivity.this, Pdf.class);
                             intent.putExtra("pdfContent", parsedText.toString());
                             startActivity(intent);
@@ -73,10 +92,16 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             });
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Initialize the database
+        db = Room.databaseBuilder(getApplicationContext(),
+                AppDatabase.class, "pdf-content-database").build();
+
         pdfNames = new ArrayList<>();
         pdfUris = new ArrayList<>();
         pdfAdapter = new PdfAdapter(this, pdfNames, pdfUris);
@@ -96,14 +121,19 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        SharedPreferences sharedPreferences = getSharedPreferences("pdf_list", Context.MODE_PRIVATE);
-        String savedNames = sharedPreferences.getString("pdf_names", "");
-        String savedContents = sharedPreferences.getString("pdf_contents", "");
-        if (!savedNames.isEmpty()) {
-            pdfNames.addAll(Arrays.asList(savedNames.split(",")));
-            pdfContents.addAll(Arrays.asList(savedContents.split(";")));
-            pdfAdapter.notifyDataSetChanged();
-        }
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+
+                // Retrieve the titles and contents from the database
+                List<PdfContent> pdfContentsList = db.pdfContentDao().getAll();
+                for (PdfContent pdfContent : pdfContentsList) {
+                    pdfNames.add(pdfContent.title);
+                    pdfContents.add(pdfContent.content);
+                }
+                pdfAdapter.notifyDataSetChanged();
+            }
+        });
     }
     private String getFileNameFromUri(Uri uri) {
         String result = null;
@@ -118,6 +148,9 @@ public class MainActivity extends AppCompatActivity {
         if (result == null) {
             result = uri.getLastPathSegment();
         }
+
+        result = result.substring(0, result.lastIndexOf("."));
+
         return result;
     }
     @Override

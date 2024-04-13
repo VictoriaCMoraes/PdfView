@@ -1,17 +1,11 @@
 package com.adenabrasil.pdfview;
 
 import android.os.Bundle;
-import android.util.Log;
 import android.util.TypedValue;
 import android.webkit.WebView;
 
 import androidx.annotation.ColorInt;
 import androidx.appcompat.app.AppCompatActivity;
-import com.itextpdf.text.pdf.PdfReader;
-import com.itextpdf.text.pdf.parser.PdfTextExtractor;
-import java.io.IOException;
-import java.io.InputStream;
-import android.net.Uri;
 public class Pdf extends AppCompatActivity {
     // Adicione essas variáveis para salvar a posição de rolagem
     private int scrollX = 0;
