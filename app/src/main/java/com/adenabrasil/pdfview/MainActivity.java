@@ -57,12 +57,13 @@ public class MainActivity extends AppCompatActivity {
         recyclerViewPdf.setAdapter(pdfAdapter);
         Button buttonOpenPdf = findViewById(R.id.buttonOpenPdf);
         buttonOpenPdf.setOnClickListener(v -> mGetContent.launch("application/pdf"));
+        ExecutorService executor = Executors.newFixedThreadPool(4); // Cria um pool de threads com 4 threads
+
         pdfAdapter.setOnPdfClickListener(position -> {
-            if (position >= 0 && position < pdfContents.size()) {
-                String pdfContent = pdfContents.get(position);
+            if (position >= 0 && position < pdfNames.size()) {
+                String pdfName = pdfNames.get(position);
                 Intent intent = new Intent(MainActivity.this, Pdf.class);
-                intent.putExtra("pdfContent", pdfContent);
-                intent.putExtra("pdfName", pdfNames.get(position)); // Adicione esta linha
+                intent.putExtra("pdfName", pdfName); // Pass the name instead of the ID
                 startActivity(intent);
             } else {
                 Toast.makeText(MainActivity.this, "Conteúdo do PDF inválido", Toast.LENGTH_SHORT).show();

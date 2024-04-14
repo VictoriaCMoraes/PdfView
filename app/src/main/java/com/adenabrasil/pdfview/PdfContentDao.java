@@ -10,6 +10,8 @@ import java.util.List;
 
 @Dao
 public interface PdfContentDao {
+    @Query("SELECT * FROM pdfcontent WHERE id = :id")
+    PdfContent getById(long id);
     @Query("SELECT * FROM pdfcontent")
     List<PdfContent> getAll();
 

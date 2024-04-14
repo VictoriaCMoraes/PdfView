@@ -16,8 +16,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Pdf extends AppCompatActivity {
-    // Adicione essas variáveis para salvar a posição de rolagem
-    private int scrollX = 0;
     private int scrollY = 0;
     private AppDatabase db;
     private ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -29,22 +27,24 @@ public class Pdf extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pdf);
+
         // Inicialize o banco de dados
         db = Room.databaseBuilder(getApplicationContext(),
                 AppDatabase.class, "pdf-content-database").build();
+
         // Obtenha o nome do PDF do Intent
         pdfName = getIntent().getStringExtra("pdfName");
+
         WebView webView = findViewById(R.id.webview);
 
-        // Adicione um WebViewClient à sua WebView
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                // Restaure a posição de rolagem aqui
                 executor.execute(new Runnable() {
                     @Override
                     public void run() {
+                        // Recupere o PdfContent do banco de dados usando o nome
                         PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
                         if (pdfContent != null) {
                             scrollY = pdfContent.scrollPosition;
@@ -54,17 +54,32 @@ public class Pdf extends AppCompatActivity {
                 });
             }
         });
+
         TypedValue typedValue = new TypedValue();
         getTheme().resolveAttribute(android.R.attr.windowBackground, typedValue, true);
         @ColorInt int backgroundColor = typedValue.data;
         webView.setBackgroundColor(backgroundColor);
-        String pdfContent = getIntent().getStringExtra("pdfContent");
-        String hexBackgroundColor = String.format("#%06X", (0xFFFFFF & backgroundColor));
-        boolean isBackgroundBeige = (hexBackgroundColor.equals("#FFFFDF"));
-        String textColor = isBackgroundBeige ? "black" : "white";
-        String htmlText = "<html><head><style>body {text-align: justify; word-wrap: break-word; font-size: 20px; color: %s;}</style></head><body>%s</body></html>";
-        String data = String.format(htmlText, textColor, pdfContent);
-        webView.loadDataWithBaseURL(null, data, "text/html", "UTF-8", null);
+
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                // Recupere o PdfContent do banco de dados usando o nome
+                PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
+                if (pdfContent != null) {
+                    handler.post(() -> {
+                        // Use o conteúdo do PdfContent
+                        String pdfContentString = pdfContent.content;
+
+                        String hexBackgroundColor = String.format("#%06X", (0xFFFFFF & backgroundColor));
+                        boolean isBackgroundBeige = (hexBackgroundColor.equals("#FFFFDF"));
+                        String textColor = isBackgroundBeige ? "black" : "white";
+                        String htmlText = "<html><head><style>body {text-align: justify; word-wrap: break-word; font-size: 20px; color: %s;}</style></head><body>%s</body></html>";
+                        String data = String.format(htmlText, textColor, pdfContentString);
+                        webView.loadDataWithBaseURL(null, data, "text/html", "UTF-8", null);
+                    });
+                }
+            }
+        });
     }
 
     @Override
