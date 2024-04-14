@@ -19,7 +19,9 @@ import android.provider.OpenableColumns;
 import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.Toast;
+import android.view.View;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -39,11 +41,13 @@ public class MainActivity extends AppCompatActivity {
     private AppDatabase db;
     private ExecutorService executor = Executors.newSingleThreadExecutor();
     private Handler handler = new Handler(Looper.getMainLooper());
+    private ProgressBar progressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
 
         // Initialize the database
         db = Room.databaseBuilder(getApplicationContext(),
@@ -57,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
         recyclerViewPdf.setAdapter(pdfAdapter);
         Button buttonOpenPdf = findViewById(R.id.buttonOpenPdf);
         buttonOpenPdf.setOnClickListener(v -> mGetContent.launch("application/pdf"));
+        progressBar = findViewById(R.id.progressBar);
         ExecutorService executor = Executors.newFixedThreadPool(4); // Cria um pool de threads com 4 threads
 
         pdfAdapter.setOnPdfClickListener(position -> {
@@ -90,70 +95,67 @@ public class MainActivity extends AppCompatActivity {
             uri -> {
                 if (uri != null) {
                     String pdfName = getFileNameFromUri(uri);
-                    if (pdfName != null) {
-                        if (!pdfNames.contains(pdfName)) {
-                            pdfUris.add(uri);
-                            pdfNames.add(pdfName);
-                            executor.execute(new Runnable() {
-                                @Override
-                                public void run() {
-                                    StringBuilder parsedText = new StringBuilder();
-                                    try {
-                                        InputStream inputStream = getContentResolver().openInputStream(uri);
-                                        if (inputStream != null) {
-                                            PdfReader reader = new PdfReader(inputStream);
-                                            int numberOfPages = reader.getNumberOfPages();
-                                            for (int i = 1; i <= numberOfPages; i++) {
-                                                String pageText = PdfTextExtractor.getTextFromPage(reader, i);
-                                                String[] lines = pageText.split("\\n");
-                                                StringBuilder paragraph = new StringBuilder();
-                                                for (int j = 0; j < lines.length; j++) {
-                                                    String line = lines[j].trim();
-                                                    if (!line.isEmpty()) {
-                                                        paragraph.append(line).append(" ");
-                                                        if (line.endsWith(".") ) {
-                                                            parsedText.append("<p>").append(paragraph.toString()).append("</p>");
-                                                            paragraph = new StringBuilder();
-                                                        } else if (line.length() < 40) {
-                                                            parsedText.append("<p>").append(paragraph.toString()).append("</p>");
-                                                            paragraph = new StringBuilder();
-                                                        }
+                    showLoading();
+
+                    if (!pdfNames.contains(pdfName)) {
+                        pdfUris.add(uri);
+                        pdfNames.add(pdfName);
+                        executor.execute(new Runnable() {
+                            @Override
+                            public void run() {
+                                StringBuilder parsedText = new StringBuilder();
+                                try {
+                                    InputStream inputStream = getContentResolver().openInputStream(uri);
+                                    if (inputStream != null) {
+                                        PdfReader reader = new PdfReader(inputStream);
+                                        int numberOfPages = reader.getNumberOfPages();
+                                        for (int i = 1; i <= numberOfPages; i++) {
+                                            String pageText = PdfTextExtractor.getTextFromPage(reader, i);
+                                            String[] lines = pageText.split("\\n");
+                                            StringBuilder paragraph = new StringBuilder();
+                                            for (int j = 0; j < lines.length; j++) {
+                                                String line = lines[j].trim();
+                                                if (!line.isEmpty()) {
+                                                    paragraph.append(line).append(" ");
+                                                    if (line.endsWith(".") ) {
+                                                        parsedText.append("<p>").append(paragraph).append("</p>");
+                                                        paragraph = new StringBuilder();
+                                                    } else if (line.length() < 40) {
+                                                        parsedText.append("<p>").append(paragraph).append("</p>");
+                                                        paragraph = new StringBuilder();
                                                     }
                                                 }
-                                                if (paragraph.length() > 0) {
-                                                    parsedText.append("<p>").append(paragraph.toString()).append("</p>");
-                                                }
                                             }
-                                            reader.close();
-                                        } else {
-                                            Log.e("PdfBox-Android-Sample", "InputStream is null");
+                                            if (paragraph.length() > 0) {
+                                                parsedText.append("<p>").append(paragraph).append("</p>");
+                                            }
                                         }
-                                    } catch (IOException e) {
-                                        Log.e("PdfBox-Android-Sample", "Exception thrown while loading or reading PDF", e);
+                                        reader.close();
+                                    } else {
+                                        Log.e("PdfBox-Android-Sample", "InputStream is null");
                                     }
-
-                                    // Save the title and content to the database
-                                    PdfContent pdfContent = new PdfContent();
-                                    pdfContent.title = pdfName;
-                                    pdfContent.content = parsedText.toString();
-                                    db.pdfContentDao().insert(pdfContent);
-
-                                    handler.post(() -> {
-                                        pdfContents.add(parsedText.toString());
-                                        pdfAdapter.notifyDataSetChanged();
-
-                                        Intent intent = new Intent(MainActivity.this, Pdf.class);
-                                        intent.putExtra("pdfContent", parsedText.toString());
-                                        startActivity(intent);
-                                    });
+                                } catch (IOException e) {
+                                    Log.e("PdfBox-Android-Sample", "Exception thrown while loading or reading PDF", e);
                                 }
-                            });
-                        }
-                        else {
-                            Toast.makeText(MainActivity.this, "Este PDF já foi adicionado", Toast.LENGTH_SHORT).show();
-                        }
-                    } else {
-                        Toast.makeText(MainActivity.this, "Não foi possível obter o nome do PDF", Toast.LENGTH_SHORT).show();
+
+                                // Save the title and content to the database
+                                PdfContent pdfContent = new PdfContent();
+                                pdfContent.title = pdfName;
+                                pdfContent.content = parsedText.toString();
+                                db.pdfContentDao().insert(pdfContent);
+                                handler.post(() -> {
+                                    pdfContents.add(parsedText.toString());
+                                    pdfAdapter.notifyDataSetChanged();
+                                    /*Intent intent = new Intent(MainActivity.this, Pdf.class);
+                                    intent.putExtra("pdfContent", parsedText.toString());
+                                    startActivity(intent);*/
+                                    hideLoading();
+                                });
+                            }
+                        });
+                    }
+                    else {
+                        Toast.makeText(MainActivity.this, "Este PDF já foi adicionado", Toast.LENGTH_SHORT).show();
                     }
                 }
             });
@@ -176,6 +178,15 @@ public class MainActivity extends AppCompatActivity {
 
         return result;
     }
+
+    private void showLoading() {
+        progressBar.setVisibility(View.VISIBLE);
+    }
+
+    private void hideLoading() {
+        progressBar.setVisibility(View.GONE);
+    }
+
     @Override
     protected void onStop() {
         super.onStop();
