@@ -14,4 +14,7 @@ public class PdfContent {
 
     @ColumnInfo(name = "content")
     public String content;
+
+    @ColumnInfo(name = "scroll_position")
+    public int scrollPosition;
 }

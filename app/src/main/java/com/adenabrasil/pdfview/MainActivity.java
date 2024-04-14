@@ -62,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
                 String pdfContent = pdfContents.get(position);
                 Intent intent = new Intent(MainActivity.this, Pdf.class);
                 intent.putExtra("pdfContent", pdfContent);
+                intent.putExtra("pdfName", pdfNames.get(position)); // Adicione esta linha
                 startActivity(intent);
             } else {
                 Toast.makeText(MainActivity.this, "Conteúdo do PDF inválido", Toast.LENGTH_SHORT).show();
@@ -92,61 +93,62 @@ public class MainActivity extends AppCompatActivity {
                         if (!pdfNames.contains(pdfName)) {
                             pdfUris.add(uri);
                             pdfNames.add(pdfName);
-                            StringBuilder parsedText = new StringBuilder();
-                            try {
-                                InputStream inputStream = getContentResolver().openInputStream(uri);
-                                if (inputStream != null) {
-                                    PdfReader reader = new PdfReader(inputStream);
-                                    int numberOfPages = reader.getNumberOfPages();
-                                    for (int i = 1; i <= numberOfPages; i++) {
-                                        String pageText = PdfTextExtractor.getTextFromPage(reader, i);
-                                        String[] lines = pageText.split("\\n"); // divide o texto em linhas
-                                        StringBuilder paragraph = new StringBuilder();
-                                        for (int j = 0; j < lines.length; j++) {
-                                            String line = lines[j].trim(); // remove espaços em branco no início e no fim
-                                            if (!line.isEmpty()) {
-                                                paragraph.append(line).append(" "); // adiciona um espaço ao final de cada linha
-                                                if (line.endsWith(".") ) {
-                                                    // Se a linha termina com um ponto e a primeira letra da próxima linha é maiúscula, consideramos que é o final de um parágrafo
-                                                    parsedText.append("<p>").append(paragraph.toString()).append("</p>");
-                                                    paragraph = new StringBuilder();
-                                                } else if (line.length() < 40) {
-                                                    // Se a linha tem menos de 40 caracteres, consideramos que é o final de um parágrafo
-                                                    parsedText.append("<p>").append(paragraph.toString()).append("</p>");
-                                                    paragraph = new StringBuilder();
-                                                }
-                                            }
-                                        }
-                                        // Adiciona o último parágrafo
-                                        if (paragraph.length() > 0) {
-                                            parsedText.append("<p>").append(paragraph.toString()).append("</p>");
-                                        }
-                                    }
-                                    reader.close();
-                                } else {
-                                    Log.e("PdfBox-Android-Sample", "InputStream is null");
-                                }
-                            } catch (IOException e) {
-                                Log.e("PdfBox-Android-Sample", "Exception thrown while loading or reading PDF", e);
-                            }
-                            pdfContents.add(parsedText.toString());
-                            pdfAdapter.notifyDataSetChanged();
-
                             executor.execute(new Runnable() {
                                 @Override
                                 public void run() {
+                                    StringBuilder parsedText = new StringBuilder();
+                                    try {
+                                        InputStream inputStream = getContentResolver().openInputStream(uri);
+                                        if (inputStream != null) {
+                                            PdfReader reader = new PdfReader(inputStream);
+                                            int numberOfPages = reader.getNumberOfPages();
+                                            for (int i = 1; i <= numberOfPages; i++) {
+                                                String pageText = PdfTextExtractor.getTextFromPage(reader, i);
+                                                String[] lines = pageText.split("\\n");
+                                                StringBuilder paragraph = new StringBuilder();
+                                                for (int j = 0; j < lines.length; j++) {
+                                                    String line = lines[j].trim();
+                                                    if (!line.isEmpty()) {
+                                                        paragraph.append(line).append(" ");
+                                                        if (line.endsWith(".") ) {
+                                                            parsedText.append("<p>").append(paragraph.toString()).append("</p>");
+                                                            paragraph = new StringBuilder();
+                                                        } else if (line.length() < 40) {
+                                                            parsedText.append("<p>").append(paragraph.toString()).append("</p>");
+                                                            paragraph = new StringBuilder();
+                                                        }
+                                                    }
+                                                }
+                                                if (paragraph.length() > 0) {
+                                                    parsedText.append("<p>").append(paragraph.toString()).append("</p>");
+                                                }
+                                            }
+                                            reader.close();
+                                        } else {
+                                            Log.e("PdfBox-Android-Sample", "InputStream is null");
+                                        }
+                                    } catch (IOException e) {
+                                        Log.e("PdfBox-Android-Sample", "Exception thrown while loading or reading PDF", e);
+                                    }
+
                                     // Save the title and content to the database
                                     PdfContent pdfContent = new PdfContent();
                                     pdfContent.title = pdfName;
                                     pdfContent.content = parsedText.toString();
                                     db.pdfContentDao().insert(pdfContent);
+
+                                    handler.post(() -> {
+                                        pdfContents.add(parsedText.toString());
+                                        pdfAdapter.notifyDataSetChanged();
+
+                                        Intent intent = new Intent(MainActivity.this, Pdf.class);
+                                        intent.putExtra("pdfContent", parsedText.toString());
+                                        startActivity(intent);
+                                    });
                                 }
                             });
-
-                            Intent intent = new Intent(MainActivity.this, Pdf.class);
-                            intent.putExtra("pdfContent", parsedText.toString());
-                            startActivity(intent);
-                        } else {
+                        }
+                        else {
                             Toast.makeText(MainActivity.this, "Este PDF já foi adicionado", Toast.LENGTH_SHORT).show();
                         }
                     } else {
