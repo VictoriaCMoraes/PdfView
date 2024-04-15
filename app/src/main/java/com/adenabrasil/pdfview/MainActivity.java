@@ -11,10 +11,13 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
 import android.text.TextUtils;
 import android.util.Log;
@@ -23,6 +26,8 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 import android.view.View;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -38,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
     private PdfAdapter pdfAdapter;
     private List<Uri> pdfUris;
     private List<String> pdfContents = new ArrayList<>();
+    private List<String> pdfImagePaths = new ArrayList<>();
     private AppDatabase db;
     private ExecutorService executor = Executors.newSingleThreadExecutor();
     private Handler handler = new Handler(Looper.getMainLooper());
@@ -61,8 +67,9 @@ public class MainActivity extends AppCompatActivity {
 
     private void initializeViews() {
         pdfNames = new ArrayList<>();
+        pdfImagePaths = new ArrayList<>();
         pdfUris = new ArrayList<>();
-        pdfAdapter = new PdfAdapter(this, pdfNames, pdfUris);
+        pdfAdapter = new PdfAdapter(this, pdfNames, pdfImagePaths, pdfUris);
         RecyclerView recyclerViewPdf = findViewById(R.id.recyclerViewPdf);
         recyclerViewPdf.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewPdf.setAdapter(pdfAdapter);
@@ -77,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
             for (PdfContent pdfContent : pdfContentsList) {
                 pdfNames.add(pdfContent.title);
                 pdfContents.add(pdfContent.content);
+                pdfImagePaths.add(pdfContent.imagePath);
             }
             handler.post(() -> pdfAdapter.notifyDataSetChanged());
         });
@@ -144,6 +152,7 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences.Editor editor = sharedPreferences.edit();
         editor.putString("pdf_names", TextUtils.join(",", pdfNames));
         editor.putString("pdf_contents", TextUtils.join(";", pdfContents));
+        editor.putString("pdfImagePath", TextUtils.join(";", pdfImagePaths));
         editor.apply();
     }
 
@@ -183,20 +192,45 @@ public class MainActivity extends AppCompatActivity {
             } catch (IOException e) {
                 Log.e("PdfBox-Android-Sample", "Exception thrown while loading or reading PDF", e);
             }
+            // Renderize a primeira página em um Bitmap
+            try (ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(uri, "r")) {
+                if (pfd != null) {
+                    PdfRenderer renderer = new PdfRenderer(pfd);
+                    PdfRenderer.Page page = renderer.openPage(0);
+                    Bitmap bitmap = Bitmap.createBitmap(page.getWidth(), page.getHeight(), Bitmap.Config.ARGB_8888);
+                    page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
+                    page.close();
+                    renderer.close();
 
-            // Save the title and content to the database
-            PdfContent pdfContent = new PdfContent();
-            pdfContent.title = pdfName;
-            pdfContent.content = parsedText.toString();
-            db.pdfContentDao().insert(pdfContent);
+                    // Salve o Bitmap como uma imagem
+                    File imageFile = new File(getFilesDir(), pdfName + ".png");  // Defina imageFile aqui
+                    try (FileOutputStream fos = new FileOutputStream(imageFile)) {
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                        Log.d("PdfBox-Android-Sample", "Image saved at: " + imageFile.getAbsolutePath());
+                    }
+                    // Crie uma nova instância de PdfContent
+                    PdfContent pdfContent = new PdfContent();
 
-            // Update the UI on the main thread
-            handler.post(() -> {
-                pdfContents.add(parsedText.toString());
-                pdfAdapter.notifyDataSetChanged();
-                hideLoading();
-            });
+                    // Salve o caminho da imagem no banco de dados
+                    pdfContent.imagePath = imageFile.getAbsolutePath();
+
+                    // Salve o título e o conteúdo no banco de dados
+                    pdfContent.title = pdfName;
+                    pdfContent.content = parsedText.toString();
+                    db.pdfContentDao().insert(pdfContent);
+
+                    // Atualize a UI na thread principal
+                    handler.post(() -> {
+                        pdfNames.add(pdfName); // Adicione o novo nome do PDF à lista
+                        pdfImagePaths.add(imageFile.getAbsolutePath());
+                        pdfContents.add(parsedText.toString());
+                        pdfAdapter.notifyDataSetChanged();
+                        hideLoading();
+                    });
+                }
+            } catch (IOException e) {
+                Log.e("PdfBox-Android-Sample", "Exception thrown while rendering PDF", e);
+            }
         });
     }
-
 }

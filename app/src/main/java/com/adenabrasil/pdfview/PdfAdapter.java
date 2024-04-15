@@ -1,9 +1,12 @@
 package com.adenabrasil.pdfview;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -11,17 +14,18 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
 import android.net.Uri;
-
 public class PdfAdapter extends RecyclerView.Adapter<PdfAdapter.ViewHolder> {
 
     private Context context;
     private List<String> pdfNames;
+    private List<String> pdfImagePath;
     private List<Uri> pdfUris;
     private OnPdfClickListener onPdfClickListener;
 
-    public PdfAdapter(Context context, List<String> pdfNames, List<Uri> pdfUris) {
+    public PdfAdapter(Context context, List<String> pdfNames, List<String> pdfImagePath, List<Uri> pdfUris) {
         this.context = context;
         this.pdfNames = pdfNames;
+        this.pdfImagePath = pdfImagePath;
         this.pdfUris = pdfUris;
     }
 
@@ -42,20 +46,32 @@ public class PdfAdapter extends RecyclerView.Adapter<PdfAdapter.ViewHolder> {
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        // Verifica se a posição está dentro dos limites da lista pdfNames
-        if (position >= 0 && position < pdfNames.size()) {
-            // Obtém o nome do PDF
-            String pdfName = pdfNames.get(position);
-            holder.textViewPdfName.setText(pdfName);
+        if (!pdfNames.isEmpty() && !pdfImagePath.isEmpty()) {
+            // Verifica se a posição está dentro dos limites da lista pdfNames
+            if (position >= 0 && position < pdfNames.size() && position < pdfImagePath.size()) {
+                // Obtém o nome do PDF
+                String pdfName = pdfNames.get(position);
+                holder.textViewPdfName.setText(pdfName);
 
-            // Define um ouvinte de clique para o item da lista
-            holder.itemView.setOnClickListener(view -> {
-                if (onPdfClickListener != null) {
-                    onPdfClickListener.onPdfClick(holder.getAdapterPosition());
+                String imageFilePath = pdfImagePath.get(position);
+
+                // Define o conteúdo do PDF (texto) e a imagem associada
+                // Se imagePath for não nulo, carrega a imagem no ImageView
+                if (imageFilePath != null) {
+                    Bitmap bitmap = BitmapFactory.decodeFile(imageFilePath);
+                    holder.imageViewPdf.setImageBitmap(bitmap);
                 }
-            });
+
+                // Define um ouvinte de clique para o item da lista
+                holder.itemView.setOnClickListener(view -> {
+                    if (onPdfClickListener != null) {
+                        onPdfClickListener.onPdfClick(holder.getAdapterPosition());
+                    }
+                });
+            }
         }
     }
+
 
     @Override
     public int getItemCount() {
@@ -64,10 +80,13 @@ public class PdfAdapter extends RecyclerView.Adapter<PdfAdapter.ViewHolder> {
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView textViewPdfName;
+        ImageView imageViewPdf;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             textViewPdfName = itemView.findViewById(R.id.textViewPdfName);
+            imageViewPdf = itemView.findViewById(R.id.imageViewPdf);
         }
     }
 }
+
