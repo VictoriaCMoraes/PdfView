@@ -26,6 +26,9 @@ public interface PdfContentDao {
 
     @Delete
     void delete(PdfContent pdfContent);
+
+    @Query("DELETE FROM pdfcontent WHERE title = :title")
+    void deleteByName(String title);
 }
 
 

@@ -2,7 +2,9 @@ package com.adenabrasil.pdfview;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.room.Room;
@@ -44,6 +46,7 @@ public class MainActivity extends AppCompatActivity {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler handler = new Handler(Looper.getMainLooper());
     private ProgressBar progressBar;
+    private RecyclerView recyclerViewPdf;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
         initializeViews();
         loadPdfContentsFromDatabase();
         setButtonClickListeners();
+        setupItemTouchHelper();
     }
 
     private void initializeDatabase() {
@@ -65,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
         pdfNames = new ArrayList<>();
         pdfImagePaths = new ArrayList<>();
         pdfAdapter = new PdfAdapter(this, pdfNames, pdfImagePaths);
-        RecyclerView recyclerViewPdf = findViewById(R.id.recyclerViewPdf);
+        recyclerViewPdf = findViewById(R.id.recyclerViewPdf); // Corrigido para atribuir à variável de classe
         recyclerViewPdf.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewPdf.setAdapter(pdfAdapter);
         Button buttonOpenPdf = findViewById(R.id.buttonOpenPdf);
@@ -99,6 +103,39 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(MainActivity.this, "Conteúdo do PDF inválido", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void setupItemTouchHelper() {
+        ItemTouchHelper.SimpleCallback itemTouchHelperCallback =
+                new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+                    @Override
+                    public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
+                        return false;
+                    }
+
+                    @Override
+                    public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                        // Remove o item deslizado
+                        int position = viewHolder.getAdapterPosition();
+                        String deletedPdfName = pdfNames.get(position);
+                        pdfNames.remove(position);
+                        pdfImagePaths.remove(position);
+                        pdfAdapter.notifyItemRemoved(position);
+                        // Realiza a exclusão no banco de dados e no sistema de arquivos
+                        executor.execute(() -> {
+                            PdfContent deletedPdfContent = db.pdfContentDao().getByTitle(deletedPdfName);
+                            if (deletedPdfContent != null) {
+                                db.pdfContentDao().delete(deletedPdfContent);
+                                File imageFile = new File(deletedPdfContent.imagePath);
+                                if (imageFile.exists()) {
+                                    imageFile.delete();
+                                }
+                            }
+                        });
+                    }
+                };
+
+        new ItemTouchHelper(itemTouchHelperCallback).attachToRecyclerView(recyclerViewPdf);
     }
 
     private final ActivityResultLauncher<String> mGetContent = registerForActivityResult(
