@@ -7,9 +7,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.room.Room;
 
-import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.pdf.PdfRenderer;
@@ -19,7 +17,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
-import android.text.TextUtils;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.ProgressBar;
@@ -31,7 +28,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,8 +39,6 @@ import com.itextpdf.text.pdf.parser.PdfTextExtractor;
 public class MainActivity extends AppCompatActivity {
     private List<String> pdfNames;
     private PdfAdapter pdfAdapter;
-    private List<Uri> pdfUris;
-    private final List<String> pdfContents = new ArrayList<>();
     private List<String> pdfImagePaths = new ArrayList<>();
     private AppDatabase db;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -69,7 +64,6 @@ public class MainActivity extends AppCompatActivity {
     private void initializeViews() {
         pdfNames = new ArrayList<>();
         pdfImagePaths = new ArrayList<>();
-        pdfUris = new ArrayList<>();
         pdfAdapter = new PdfAdapter(this, pdfNames, pdfImagePaths);
         RecyclerView recyclerViewPdf = findViewById(R.id.recyclerViewPdf);
         recyclerViewPdf.setLayoutManager(new LinearLayoutManager(this));
@@ -84,9 +78,12 @@ public class MainActivity extends AppCompatActivity {
             List<PdfContent> pdfContentsList = db.pdfContentDao().getAll();
             for (PdfContent pdfContent : pdfContentsList) {
                 pdfNames.add(pdfContent.title);
-                pdfContents.add(pdfContent.content);
                 pdfImagePaths.add(pdfContent.imagePath);
             }
+            // Invertendo a ordem da lista pdfNames
+            Collections.reverse(pdfNames);
+            Collections.reverse(pdfImagePaths);
+
             handler.post(() -> pdfAdapter.notifyDataSetChanged());
         });
     }
@@ -111,8 +108,7 @@ public class MainActivity extends AppCompatActivity {
                     String pdfName = getFileNameFromUri(uri);
                     showLoading();
                     if (!pdfNames.contains(pdfName)) {
-                        pdfUris.add(uri);
-                        pdfNames.add(pdfName);
+                        pdfNames.add(0,pdfName);
                         executor.execute(() -> processPdfContent(uri, pdfName));
                     } else {
                         Toast.makeText(MainActivity.this, "Este PDF já foi adicionado", Toast.LENGTH_SHORT).show();
@@ -122,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
 
     private String getFileNameFromUri(Uri uri) {
         String result = null;
-        if (uri.getScheme().equals("content")) {
+        if (uri != null && uri.getScheme() != null && uri.getScheme().equals("content")) {
             try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
                 if (cursor != null && cursor.moveToFirst()) {
                     int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
@@ -133,10 +129,11 @@ public class MainActivity extends AppCompatActivity {
         if (result == null) {
             result = uri.getLastPathSegment();
         }
-        result = result.substring(0, result.lastIndexOf("."));
+        if (result != null && result.contains(".")) {
+            result = result.substring(0, result.lastIndexOf("."));
+        }
         return result;
     }
-
 
     private void showLoading() {
         progressBar.setVisibility(View.VISIBLE);
@@ -144,17 +141,6 @@ public class MainActivity extends AppCompatActivity {
 
     private void hideLoading() {
         progressBar.setVisibility(View.GONE);
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        SharedPreferences sharedPreferences = getSharedPreferences("pdf_list", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString("pdf_names", TextUtils.join(",", pdfNames));
-        editor.putString("pdf_contents", TextUtils.join(";", pdfContents));
-        editor.putString("pdfImagePath", TextUtils.join(";", pdfImagePaths));
-        editor.apply();
     }
 
     private void processPdfContent(Uri uri, String pdfName) {
@@ -222,11 +208,8 @@ public class MainActivity extends AppCompatActivity {
 
                     // Atualize a UI na thread principal
                     handler.post(() -> {
-                        //pdfNames.add(pdfName); // Adicione o novo nome do PDF à lista
-                        pdfImagePaths.add(imageFile.getAbsolutePath());
-                        //pdfContents.add(parsedText.toString());
-                        pdfAdapter.notifyItemInserted(pdfNames.size()-1);
-                        //pdfAdapter.notifyDataSetChanged();
+                        pdfImagePaths.add(0, imageFile.getAbsolutePath());
+                        pdfAdapter.notifyItemInserted(0);
                         hideLoading();
                     });
                 }

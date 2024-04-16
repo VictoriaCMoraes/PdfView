@@ -3,8 +3,8 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="beige">#FFFFDF</color>
-    <color name="primary_color">#2F2F2F</color>
-    <color name="accent_color">#0d7373</color>
+    <color name="primary_color">#1F2631</color>
+    <color name="accent_color">#104c6c</color>
     <!-- Para um tema azul -->
     <color name="item_background">#1F2631</color> <!-- Azul escuro neutro -->
     <color name="linear_background">#3c4d5f</color> <!-- Azul médio neutro -->
