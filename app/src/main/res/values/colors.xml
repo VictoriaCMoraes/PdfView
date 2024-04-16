@@ -3,8 +3,9 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     <color name="beige">#FFFFDF</color>
-    <color name="item_background">#37444f</color>
-    <color name="linear_background">#35474f</color>
     <color name="primary_color">#21292E</color>
     <color name="accent_color">#0d7373</color>
+    <color name="item_background">#030506</color>
+    <color name="linear_background">#182f34</color>
+    <color name="bottom_bar">#296178</color>
 </resources>
