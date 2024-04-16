@@ -5,4 +5,6 @@
     <color name="beige">#FFFFDF</color>
     <color name="item_background">#37444f</color>
     <color name="linear_background">#35474f</color>
+    <color name="primary_color">#21292E</color>
+    <color name="accent_color">#0d7373</color>
 </resources>
