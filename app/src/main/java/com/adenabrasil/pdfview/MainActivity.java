@@ -69,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
         pdfNames = new ArrayList<>();
         pdfImagePaths = new ArrayList<>();
         pdfUris = new ArrayList<>();
-        pdfAdapter = new PdfAdapter(this, pdfNames, pdfImagePaths, pdfUris);
+        pdfAdapter = new PdfAdapter(this, pdfNames, pdfImagePaths);
         RecyclerView recyclerViewPdf = findViewById(R.id.recyclerViewPdf);
         recyclerViewPdf.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewPdf.setAdapter(pdfAdapter);

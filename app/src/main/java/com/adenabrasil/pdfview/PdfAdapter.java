@@ -13,20 +13,17 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
-import android.net.Uri;
 public class PdfAdapter extends RecyclerView.Adapter<PdfAdapter.ViewHolder> {
 
-    private Context context;
-    private List<String> pdfNames;
-    private List<String> pdfImagePath;
-    private List<Uri> pdfUris;
+    private final Context context;
+    private final List<String> pdfNames;
+    private final List<String> pdfImagePath;
     private OnPdfClickListener onPdfClickListener;
 
-    public PdfAdapter(Context context, List<String> pdfNames, List<String> pdfImagePath, List<Uri> pdfUris) {
+    public PdfAdapter(Context context, List<String> pdfNames, List<String> pdfImagePath) {
         this.context = context;
         this.pdfNames = pdfNames;
         this.pdfImagePath = pdfImagePath;
-        this.pdfUris = pdfUris;
     }
 
     public interface OnPdfClickListener {
