@@ -31,6 +31,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,11 +43,11 @@ public class MainActivity extends AppCompatActivity {
     private List<String> pdfNames;
     private PdfAdapter pdfAdapter;
     private List<Uri> pdfUris;
-    private List<String> pdfContents = new ArrayList<>();
+    private final List<String> pdfContents = new ArrayList<>();
     private List<String> pdfImagePaths = new ArrayList<>();
     private AppDatabase db;
-    private ExecutorService executor = Executors.newSingleThreadExecutor();
-    private Handler handler = new Handler(Looper.getMainLooper());
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final Handler handler = new Handler(Looper.getMainLooper());
     private ProgressBar progressBar;
 
     @Override
@@ -168,8 +169,8 @@ public class MainActivity extends AppCompatActivity {
                         String pageText = PdfTextExtractor.getTextFromPage(reader, i);
                         String[] lines = pageText.split("\\n");
                         StringBuilder paragraph = new StringBuilder();
-                        for (int j = 0; j < lines.length; j++) {
-                            String line = lines[j].trim();
+                        for (String line : lines) {
+                            line = line.trim();
                             if (!line.isEmpty()) {
                                 paragraph.append(line).append(" ");
                                 if (line.endsWith(".")) {
@@ -221,10 +222,11 @@ public class MainActivity extends AppCompatActivity {
 
                     // Atualize a UI na thread principal
                     handler.post(() -> {
-                        pdfNames.add(pdfName); // Adicione o novo nome do PDF à lista
+                        //pdfNames.add(pdfName); // Adicione o novo nome do PDF à lista
                         pdfImagePaths.add(imageFile.getAbsolutePath());
-                        pdfContents.add(parsedText.toString());
-                        pdfAdapter.notifyDataSetChanged();
+                        //pdfContents.add(parsedText.toString());
+                        pdfAdapter.notifyItemInserted(pdfNames.size()-1);
+                        //pdfAdapter.notifyDataSetChanged();
                         hideLoading();
                     });
                 }
