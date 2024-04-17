@@ -143,8 +143,8 @@ public class MainActivity extends AppCompatActivity {
             uri -> {
                 if (uri != null) {
                     String pdfName = getFileNameFromUri(uri);
-                    showLoading();
                     if (!pdfNames.contains(pdfName)) {
+                        showLoading();
                         pdfNames.add(0,pdfName);
                         executor.execute(() -> processPdfContent(uri, pdfName));
                     } else {

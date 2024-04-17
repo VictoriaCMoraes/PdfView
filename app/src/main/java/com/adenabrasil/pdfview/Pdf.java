@@ -4,10 +4,14 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.TypedValue;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
+import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.SeekBar;
 
 import androidx.annotation.ColorInt;
 import androidx.appcompat.app.AppCompatActivity;
@@ -22,7 +26,8 @@ public class Pdf extends AppCompatActivity {
     private ExecutorService executor = Executors.newSingleThreadExecutor();
     private Handler handler = new Handler(Looper.getMainLooper());
     private String pdfName;
-
+    private SeekBar seekBar;
+    private GestureDetector gestureDetector;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,19 +45,74 @@ public class Pdf extends AppCompatActivity {
         pdfName = getIntent().getStringExtra("pdfName");
 
         WebView webView = findViewById(R.id.webview);
+        seekBar = findViewById(R.id.seekBar);
+
+        // Inicialize o GestureDetector
+        gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
+            @Override
+            public boolean onSingleTapConfirmed(MotionEvent e) {
+                if (seekBar.getVisibility() == View.VISIBLE) {
+                    seekBar.setVisibility(View.GONE);
+                } else {
+                    seekBar.setVisibility(View.VISIBLE);
+                }
+                return super.onSingleTapConfirmed(e);
+            }
+        });
+
+        webView.setOnTouchListener((v, event) -> {
+            gestureDetector.onTouchEvent(event);
+            if (event.getAction() == MotionEvent.ACTION_UP) {
+                v.performClick();
+            }
+            return false;
+        });
+
+        webView.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
+            int webViewHeight = webView.getContentHeight() - webView.getHeight();
+            int progress = (int) (((float) scrollY / webViewHeight) * 100);
+            seekBar.setProgress(progress);
+        });
+
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    int webViewHeight = webView.getContentHeight() - webView.getHeight();
+                    int scrollY = (int) ((progress / 100.0) * webViewHeight);
+                    webView.scrollTo(0, scrollY);
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
 
         webView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+
+                // Recupere o PdfContent do banco de dados usando o nome
                 executor.execute(new Runnable() {
                     @Override
                     public void run() {
-                        // Recupere o PdfContent do banco de dados usando o nome
                         PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
                         if (pdfContent != null) {
                             scrollY = pdfContent.scrollPosition;
-                            handler.postDelayed(() -> webView.scrollTo(0, scrollY), 100);
+
+                            // Defina a posição de rolagem depois que o conteúdo da WebView for totalmente carregado
+                            handler.postDelayed(() -> {
+                                webView.scrollTo(0, scrollY);
+
+                                // Atualize a posição da SeekBar com base na posição de rolagem
+                                int webViewHeight = webView.getContentHeight() - webView.getHeight();
+                                int progress = (int) (((float) scrollY / webViewHeight) * 100);
+                                seekBar.setProgress(progress);
+                            }, 100);
                         }
                     }
                 });
