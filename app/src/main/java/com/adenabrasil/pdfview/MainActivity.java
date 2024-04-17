@@ -22,6 +22,7 @@ import android.provider.OpenableColumns;
 import android.util.Log;
 import android.widget.Button;
 import android.widget.ProgressBar;
+import android.widget.SeekBar;
 import android.widget.Toast;
 import android.view.View;
 
@@ -41,6 +42,8 @@ import com.itextpdf.text.pdf.parser.PdfTextExtractor;
 public class MainActivity extends AppCompatActivity {
     private List<String> pdfNames;
     private PdfAdapter pdfAdapter;
+    private List<Integer> pdfScrollPosition;
+    private List<Integer> pdfWebViewHeight;
     private List<String> pdfImagePaths = new ArrayList<>();
     private AppDatabase db;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -68,7 +71,9 @@ public class MainActivity extends AppCompatActivity {
     private void initializeViews() {
         pdfNames = new ArrayList<>();
         pdfImagePaths = new ArrayList<>();
-        pdfAdapter = new PdfAdapter(this, pdfNames, pdfImagePaths);
+        pdfScrollPosition = new ArrayList<>();
+        pdfWebViewHeight = new ArrayList<>();
+        pdfAdapter = new PdfAdapter(this, pdfNames, pdfImagePaths, pdfScrollPosition, pdfWebViewHeight);
         recyclerViewPdf = findViewById(R.id.recyclerViewPdf); // Corrigido para atribuir à variável de classe
         recyclerViewPdf.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewPdf.setAdapter(pdfAdapter);
@@ -83,10 +88,14 @@ public class MainActivity extends AppCompatActivity {
             for (PdfContent pdfContent : pdfContentsList) {
                 pdfNames.add(pdfContent.title);
                 pdfImagePaths.add(pdfContent.imagePath);
+                pdfScrollPosition.add(pdfContent.scrollPosition);
+                pdfWebViewHeight.add(pdfContent.webViewHeight);
             }
             // Invertendo a ordem da lista pdfNames
             Collections.reverse(pdfNames);
             Collections.reverse(pdfImagePaths);
+            Collections.reverse(pdfScrollPosition);
+            Collections.reverse(pdfWebViewHeight);
 
             handler.post(() -> pdfAdapter.notifyDataSetChanged());
         });
@@ -246,6 +255,8 @@ public class MainActivity extends AppCompatActivity {
                     // Atualize a UI na thread principal
                     handler.post(() -> {
                         pdfImagePaths.add(0, imageFile.getAbsolutePath());
+                        pdfScrollPosition.add(0, 0); // Defina a posição de rolagem inicial como 0
+                        pdfWebViewHeight.add(0, 0);
                         pdfAdapter.notifyItemInserted(0);
                         hideLoading();
                     });

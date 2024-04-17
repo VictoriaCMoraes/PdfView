@@ -3,10 +3,12 @@ package com.adenabrasil.pdfview;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -18,12 +20,17 @@ public class PdfAdapter extends RecyclerView.Adapter<PdfAdapter.ViewHolder> {
     private final Context context;
     private final List<String> pdfNames;
     private final List<String> pdfImagePath;
+    private final List<Integer> pdfScrollPosition;
+    private final List<Integer> pdfWebViewHeight;
     private OnPdfClickListener onPdfClickListener;
 
-    public PdfAdapter(Context context, List<String> pdfNames, List<String> pdfImagePath) {
+    public PdfAdapter(Context context, List<String> pdfNames, List<String> pdfImagePath,
+                      List<Integer> pdfScrollPosition, List<Integer> pdfWebViewHeight) {
         this.context = context;
         this.pdfNames = pdfNames;
         this.pdfImagePath = pdfImagePath;
+        this.pdfScrollPosition = pdfScrollPosition;
+        this.pdfWebViewHeight = pdfWebViewHeight;
     }
 
     public interface OnPdfClickListener {
@@ -43,9 +50,9 @@ public class PdfAdapter extends RecyclerView.Adapter<PdfAdapter.ViewHolder> {
 
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        if (!pdfNames.isEmpty() && !pdfImagePath.isEmpty()) {
+        if (!pdfNames.isEmpty() && !pdfImagePath.isEmpty() ) {
             // Verifica se a posição está dentro dos limites da lista pdfNames
-            if (position >= 0 && position < pdfNames.size() && position < pdfImagePath.size()) {
+            if (position >= 0 && position < pdfNames.size() && position < pdfImagePath.size() && position < pdfScrollPosition.size()) {
                 // Obtém o nome do PDF
                 String pdfName = pdfNames.get(position);
                 holder.textViewPdfName.setText(pdfName);
@@ -58,6 +65,12 @@ public class PdfAdapter extends RecyclerView.Adapter<PdfAdapter.ViewHolder> {
                     Bitmap bitmap = BitmapFactory.decodeFile(imageFilePath);
                     holder.imageViewPdf.setImageBitmap(bitmap);
                 }
+
+                // Defina a posição da SeekBar com base na posição de rolagem
+                int scale = 5; // Arrumar scale (salvar)
+                int progress = (int) (((float) pdfScrollPosition.get(position) / (pdfWebViewHeight.get(position)) * scale) * 100);
+
+                holder.seekBar.setProgress(progress);
 
                 // Define um ouvinte de clique para o item da lista
                 holder.itemView.setOnClickListener(view -> {
@@ -77,12 +90,13 @@ public class PdfAdapter extends RecyclerView.Adapter<PdfAdapter.ViewHolder> {
     public static class ViewHolder extends RecyclerView.ViewHolder {
         TextView textViewPdfName;
         ImageView imageViewPdf;
+        SeekBar seekBar;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
             textViewPdfName = itemView.findViewById(R.id.textViewPdfName);
             imageViewPdf = itemView.findViewById(R.id.imageViewPdf);
+            seekBar = itemView.findViewById(R.id.seekBarMain);
         }
     }
 }
-

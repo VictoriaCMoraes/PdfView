@@ -3,6 +3,7 @@ package com.adenabrasil.pdfview;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
@@ -82,7 +83,7 @@ public class Pdf extends AppCompatActivity {
         });
 
         webView.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
-            int webViewHeight = webView.getContentHeight() - webView.getHeight();
+            int webViewHeight = (int) ((float) webView.getContentHeight() * webView.getScale()); // Ajuste para escala
             int progress = (int) (((float) scrollY / webViewHeight) * 100);
             seekBar.setProgress(progress);
         });
@@ -91,7 +92,7 @@ public class Pdf extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
-                    int webViewHeight = webView.getContentHeight() - webView.getHeight();
+                    int webViewHeight = (int) ((float) webView.getContentHeight() * webView.getScale()); // Ajuste para escala
                     int scrollY = (int) ((progress / 100.0) * webViewHeight);
                     webView.scrollTo(0, scrollY);
                 }
@@ -131,6 +132,7 @@ public class Pdf extends AppCompatActivity {
                 });
             }
         });
+
 
         TypedValue typedValue = new TypedValue();
         getTheme().resolveAttribute(android.R.attr.windowBackground, typedValue, true);
@@ -174,6 +176,7 @@ public class Pdf extends AppCompatActivity {
                     PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
                     if (pdfContent != null) {
                         pdfContent.scrollPosition = scrollY;
+                        pdfContent.webViewHeight = webView.getContentHeight() - webView.getHeight();
                         db.pdfContentDao().update(pdfContent);
                     }
                 }
@@ -205,7 +208,8 @@ public class Pdf extends AppCompatActivity {
         WebView webView = findViewById(R.id.webview);
         if (webView != null) {
             scrollY = webView.getScrollY();
-
+            int position = webView.getContentHeight() - webView.getHeight();
+            Log.d("DEBUG", "Valor da posição: " + position);
             // Salve a posição de rolagem no banco de dados
             executor.execute(new Runnable() {
                 @Override
@@ -213,7 +217,9 @@ public class Pdf extends AppCompatActivity {
                     PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
                     if (pdfContent != null) {
                         pdfContent.scrollPosition = scrollY;
+                        pdfContent.webViewHeight = position;
                         db.pdfContentDao().update(pdfContent);
+                        //pdfAdapter.notifyItemChanged(position);
                     }
                 }
             });

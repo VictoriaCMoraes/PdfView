@@ -20,4 +20,7 @@ public class PdfContent {
 
     @ColumnInfo(name = "scroll_position")
     public int scrollPosition;
+
+    @ColumnInfo(name = "web_view_height")
+    public int webViewHeight;
 }
