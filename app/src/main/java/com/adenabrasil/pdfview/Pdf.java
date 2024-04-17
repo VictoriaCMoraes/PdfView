@@ -11,10 +11,13 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.ImageButton;
 import android.widget.SeekBar;
+import android.widget.TextView;
 
 import androidx.annotation.ColorInt;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.room.Room;
 
 import java.util.concurrent.ExecutorService;
@@ -28,6 +31,7 @@ public class Pdf extends AppCompatActivity {
     private String pdfName;
     private SeekBar seekBar;
     private GestureDetector gestureDetector;
+    private Toolbar toolbar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,6 +50,13 @@ public class Pdf extends AppCompatActivity {
 
         WebView webView = findViewById(R.id.webview);
         seekBar = findViewById(R.id.seekBar);
+        toolbar = findViewById(R.id.toolbar);
+
+        TextView pdfNameTextView = findViewById(R.id.pdfNameTextView);
+        pdfNameTextView.setText(pdfName);
+
+        ImageButton backButton = findViewById(R.id.backButton);
+        backButton.setOnClickListener(v -> finish());
 
         // Inicialize o GestureDetector
         gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
@@ -53,8 +64,10 @@ public class Pdf extends AppCompatActivity {
             public boolean onSingleTapConfirmed(MotionEvent e) {
                 if (seekBar.getVisibility() == View.VISIBLE) {
                     seekBar.setVisibility(View.GONE);
+                    toolbar.setVisibility(View.GONE);
                 } else {
                     seekBar.setVisibility(View.VISIBLE);
+                    toolbar.setVisibility(View.VISIBLE);
                 }
                 return super.onSingleTapConfirmed(e);
             }
