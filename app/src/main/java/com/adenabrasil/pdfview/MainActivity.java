@@ -116,7 +116,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void setupItemTouchHelper() {
         ItemTouchHelper.SimpleCallback itemTouchHelperCallback =
-                new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT) {
+                new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
                     @Override
                     public boolean onMove(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder, @NonNull RecyclerView.ViewHolder target) {
                         return false;
@@ -129,6 +129,8 @@ public class MainActivity extends AppCompatActivity {
                         String deletedPdfName = pdfNames.get(position);
                         pdfNames.remove(position);
                         pdfImagePaths.remove(position);
+                        pdfWebViewHeight.remove(position);
+                        pdfScrollPosition.remove(position);
                         pdfAdapter.notifyItemRemoved(position);
                         // Realiza a exclusão no banco de dados e no sistema de arquivos
                         executor.execute(() -> {
