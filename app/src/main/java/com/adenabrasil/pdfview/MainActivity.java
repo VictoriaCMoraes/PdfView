@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
         pdfScrollPosition = new ArrayList<>();
         pdfWebViewHeight = new ArrayList<>();
         pdfAdapter = new PdfAdapter(this, pdfNames, pdfImagePaths, pdfScrollPosition, pdfWebViewHeight);
-        recyclerViewPdf = findViewById(R.id.recyclerViewPdf); // Corrigido para atribuir à variável de classe
+        recyclerViewPdf = findViewById(R.id.recyclerViewPdf);
         recyclerViewPdf.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewPdf.setAdapter(pdfAdapter);
         Button buttonOpenPdf = findViewById(R.id.buttonOpenPdf);
@@ -147,9 +147,6 @@ public class MainActivity extends AppCompatActivity {
                             if (deletedPdfContent != null) {
                                 db.pdfContentDao().delete(deletedPdfContent);
                                 File imageFile = new File(deletedPdfContent.imagePath);
-                                if (imageFile.exists()) {
-                                    imageFile.delete();
-                                }
                             }
                             // Use um Handler para postar as operações na thread principal
                             handler.post(() -> {
@@ -158,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
                                 } else {
                                     textViewEmpty.setVisibility(View.GONE);
                                 }
-                                pdfAdapter.notifyDataSetChanged();
+                                pdfAdapter.notifyItemRemoved(position);
                             });
                         });
                     }
@@ -264,10 +261,8 @@ public class MainActivity extends AppCompatActivity {
                     // Crie uma nova instância de PdfContent
                     PdfContent pdfContent = new PdfContent();
 
-                    // Salve o caminho da imagem no banco de dados
+                    // Salva os itens no banco de dados
                     pdfContent.imagePath = imageFile.getAbsolutePath();
-
-                    // Salve o título e o conteúdo no banco de dados
                     pdfContent.title = pdfName;
                     pdfContent.content = parsedText.toString();
                     db.pdfContentDao().insert(pdfContent);
@@ -285,6 +280,8 @@ public class MainActivity extends AppCompatActivity {
                         }
                         hideLoading();
                     });
+                    // Rolando para o topo da lista
+                    recyclerViewPdf.smoothScrollToPosition(0);
                 }
             } catch (IOException e) {
                 Log.e("PdfBox-Android-Sample", "Exception thrown while rendering PDF", e);

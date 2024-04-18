@@ -3,7 +3,6 @@ package com.adenabrasil.pdfview;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -53,14 +52,12 @@ public class PdfAdapter extends RecyclerView.Adapter<PdfAdapter.ViewHolder> {
         if (!pdfNames.isEmpty() && !pdfImagePath.isEmpty() ) {
             // Verifica se a posição está dentro dos limites da lista pdfNames
             if (position >= 0 && position < pdfNames.size() && position < pdfImagePath.size() && position < pdfScrollPosition.size()) {
-                // Obtém o nome do PDF
                 String pdfName = pdfNames.get(position);
                 holder.textViewPdfName.setText(pdfName);
 
                 String imageFilePath = pdfImagePath.get(position);
 
                 // Define o conteúdo do PDF (texto) e a imagem associada
-                // Se imagePath for não nulo, carrega a imagem no ImageView
                 if (imageFilePath != null) {
                     Bitmap bitmap = BitmapFactory.decodeFile(imageFilePath);
                     holder.imageViewPdf.setImageBitmap(bitmap);
@@ -71,7 +68,6 @@ public class PdfAdapter extends RecyclerView.Adapter<PdfAdapter.ViewHolder> {
                 int progress = (int) (((float) pdfScrollPosition.get(position) / (pdfWebViewHeight.get(position)) * scale) * 100);
 
                 holder.seekBar.setProgress(progress);
-                // Desabilita o clique na SeekBar
                 holder.seekBar.setClickable(false);
                 holder.seekBar.setEnabled(false);
 

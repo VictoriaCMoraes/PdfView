@@ -27,8 +27,8 @@ import java.util.concurrent.Executors;
 public class Pdf extends AppCompatActivity {
     private int scrollY = 0;
     private AppDatabase db;
-    private ExecutorService executor = Executors.newSingleThreadExecutor();
-    private Handler handler = new Handler(Looper.getMainLooper());
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final Handler handler = new Handler(Looper.getMainLooper());
     private String pdfName;
     private SeekBar seekBar;
     private GestureDetector gestureDetector;
@@ -111,52 +111,44 @@ public class Pdf extends AppCompatActivity {
                 super.onPageFinished(view, url);
 
                 // Recupere o PdfContent do banco de dados usando o nome
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
-                        if (pdfContent != null) {
-                            scrollY = pdfContent.scrollPosition;
+                executor.execute(() -> {
+                    PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
+                    if (pdfContent != null) {
+                        scrollY = pdfContent.scrollPosition;
 
-                            // Defina a posição de rolagem depois que o conteúdo da WebView for totalmente carregado
-                            handler.postDelayed(() -> {
-                                webView.scrollTo(0, scrollY);
-
-                                // Atualize a posição da SeekBar com base na posição de rolagem
-                                int webViewHeight = webView.getContentHeight() - webView.getHeight();
-                                int progress = (int) (((float) scrollY / webViewHeight) * 100);
-                                seekBar.setProgress(progress);
-                            }, 100);
-                        }
+                        // Defina a posição de rolagem depois que o conteúdo da WebView for totalmente carregado
+                        handler.postDelayed(() -> {
+                            webView.scrollTo(0, scrollY);
+                            // Atualize a posição da SeekBar com base na posição de rolagem
+                            int webViewHeight = webView.getContentHeight() - webView.getHeight();
+                            int progress = (int) (((float) scrollY / webViewHeight) * 100);
+                            seekBar.setProgress(progress);
+                        }, 100);
                     }
                 });
             }
         });
-
 
         TypedValue typedValue = new TypedValue();
         getTheme().resolveAttribute(android.R.attr.windowBackground, typedValue, true);
         @ColorInt int backgroundColor = typedValue.data;
         webView.setBackgroundColor(backgroundColor);
 
-        executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                // Recupere o PdfContent do banco de dados usando o nome
-                PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
-                if (pdfContent != null) {
-                    handler.post(() -> {
-                        // Use o conteúdo do PdfContent
-                        String pdfContentString = pdfContent.content;
+        executor.execute(() -> {
+            // Recupere o PdfContent do banco de dados usando o nome
+            PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
+            if (pdfContent != null) {
+                handler.post(() -> {
+                    // Use o conteúdo do PdfContent
+                    String pdfContentString = pdfContent.content;
 
-                        String hexBackgroundColor = String.format("#%06X", (0xFFFFFF & backgroundColor));
-                        boolean isBackgroundBeige = (hexBackgroundColor.equals("#FFFFDF"));
-                        String textColor = isBackgroundBeige ? "black" : "white";
-                        String htmlText = "<html><head><style>body {text-align: justify; word-wrap: break-word; font-size: 20px; color: %s;}</style></head><body>%s</body></html>";
-                        String data = String.format(htmlText, textColor, pdfContentString);
-                        webView.loadDataWithBaseURL(null, data, "text/html", "UTF-8", null);
-                    });
-                }
+                    String hexBackgroundColor = String.format("#%06X", (0xFFFFFF & backgroundColor));
+                    boolean isBackgroundBeige = (hexBackgroundColor.equals("#FFFFDF"));
+                    String textColor = isBackgroundBeige ? "black" : "white";
+                    String htmlText = "<html><head><style>body {text-align: justify; word-wrap: break-word; font-size: 20px; color: %s;}</style></head><body>%s</body></html>";
+                    String data = String.format(htmlText, textColor, pdfContentString);
+                    webView.loadDataWithBaseURL(null, data, "text/html", "UTF-8", null);
+                });
             }
         });
     }
@@ -170,15 +162,12 @@ public class Pdf extends AppCompatActivity {
             outState.putInt("scrollY", scrollY);
 
             // Salve a posição de rolagem no banco de dados
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
-                    if (pdfContent != null) {
-                        pdfContent.scrollPosition = scrollY;
-                        pdfContent.webViewHeight = webView.getContentHeight() - webView.getHeight();
-                        db.pdfContentDao().update(pdfContent);
-                    }
+            executor.execute(() -> {
+                PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
+                if (pdfContent != null) {
+                    pdfContent.scrollPosition = scrollY;
+                    pdfContent.webViewHeight = webView.getContentHeight() - webView.getHeight();
+                    db.pdfContentDao().update(pdfContent);
                 }
             });
         }
@@ -189,14 +178,11 @@ public class Pdf extends AppCompatActivity {
         super.onResume();
         WebView webView = findViewById(R.id.webview);
         if (webView != null) {
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
-                    if (pdfContent != null) {
-                        scrollY = pdfContent.scrollPosition;
-                        handler.post(() -> webView.scrollTo(0, scrollY));
-                    }
+            executor.execute(() -> {
+                PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
+                if (pdfContent != null) {
+                    scrollY = pdfContent.scrollPosition;
+                    handler.post(() -> webView.scrollTo(0, scrollY));
                 }
             });
         }
@@ -211,16 +197,13 @@ public class Pdf extends AppCompatActivity {
             int position = webView.getContentHeight() - webView.getHeight();
             Log.d("DEBUG", "Valor da posição: " + position);
             // Salve a posição de rolagem no banco de dados
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
-                    if (pdfContent != null) {
-                        pdfContent.scrollPosition = scrollY;
-                        pdfContent.webViewHeight = position;
-                        db.pdfContentDao().update(pdfContent);
-                        //pdfAdapter.notifyItemChanged(position);
-                    }
+            executor.execute(() -> {
+                PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
+                if (pdfContent != null) {
+                    pdfContent.scrollPosition = scrollY;
+                    pdfContent.webViewHeight = position;
+                    db.pdfContentDao().update(pdfContent);
+                    //pdfAdapter.notifyItemChanged(position);
                 }
             });
         }
