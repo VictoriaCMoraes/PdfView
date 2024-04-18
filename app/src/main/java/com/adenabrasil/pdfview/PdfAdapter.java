@@ -71,6 +71,9 @@ public class PdfAdapter extends RecyclerView.Adapter<PdfAdapter.ViewHolder> {
                 int progress = (int) (((float) pdfScrollPosition.get(position) / (pdfWebViewHeight.get(position)) * scale) * 100);
 
                 holder.seekBar.setProgress(progress);
+                // Desabilita o clique na SeekBar
+                holder.seekBar.setClickable(false);
+                holder.seekBar.setEnabled(false);
 
                 // Define um ouvinte de clique para o item da lista
                 holder.itemView.setOnClickListener(view -> {

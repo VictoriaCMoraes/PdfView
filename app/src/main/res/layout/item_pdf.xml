@@ -52,10 +52,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom"
-                android:enabled="false"
-                android:clickable="false"
-                android:focusable="false"
                 android:progressTint="#799fbf"
+                android:progressBackgroundTint="@color/white"
                 android:thumbTint="#799fbf"
                 android:layout_marginEnd="20dp"/>
         </LinearLayout>
