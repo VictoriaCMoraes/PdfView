@@ -140,7 +140,6 @@ public class MainActivity extends AppCompatActivity {
                         pdfImagePaths.remove(position);
                         pdfScrollPosition.remove(position);
                         pdfProgress.remove(position);
-                        pdfAdapter.notifyItemRemoved(position);
                         // Realiza a exclusão no banco de dados e no sistema de arquivos
                         executor.execute(() -> {
                             PdfContent deletedPdfContent = db.pdfContentDao().getByTitle(deletedPdfName);
@@ -155,7 +154,7 @@ public class MainActivity extends AppCompatActivity {
                                 } else {
                                     textViewEmpty.setVisibility(View.GONE);
                                 }
-                                pdfAdapter.notifyItemRemoved(position);
+                                pdfAdapter.notifyDataSetChanged();
                             });
                         });
                     }
@@ -247,7 +246,7 @@ public class MainActivity extends AppCompatActivity {
                 if (pfd != null) {
                     PdfRenderer renderer = new PdfRenderer(pfd);
                     PdfRenderer.Page page = renderer.openPage(0);
-                    Bitmap bitmap = Bitmap.createBitmap(page.getWidth(), page.getHeight(), Bitmap.Config.ARGB_8888);
+                    Bitmap bitmap = Bitmap.createBitmap(212, 300, Bitmap.Config.ARGB_8888);
                     page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
                     page.close();
                     renderer.close();
@@ -272,7 +271,7 @@ public class MainActivity extends AppCompatActivity {
                         pdfImagePaths.add(0, imageFile.getAbsolutePath());
                         pdfScrollPosition.add(0, 0); // Defina a posição de rolagem inicial como 0
                         pdfProgress.add(0,0);
-                        pdfAdapter.notifyItemInserted(0);
+                        pdfAdapter.notifyDataSetChanged();
                         if (pdfNames.isEmpty()) {
                             textViewEmpty.setVisibility(View.VISIBLE);
                         } else {
