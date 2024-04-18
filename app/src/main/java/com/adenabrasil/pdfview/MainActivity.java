@@ -21,8 +21,8 @@ import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
 import android.util.Log;
 import android.widget.Button;
-import android.widget.ProgressBar;
-import android.widget.SeekBar;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 import android.view.View;
 
@@ -48,9 +48,9 @@ public class MainActivity extends AppCompatActivity {
     private AppDatabase db;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler handler = new Handler(Looper.getMainLooper());
-    private ProgressBar progressBar;
     private RecyclerView recyclerViewPdf;
-
+    private LinearLayout loadingLayout;
+    private TextView textViewEmpty;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -79,7 +79,8 @@ public class MainActivity extends AppCompatActivity {
         recyclerViewPdf.setAdapter(pdfAdapter);
         Button buttonOpenPdf = findViewById(R.id.buttonOpenPdf);
         buttonOpenPdf.setOnClickListener(v -> mGetContent.launch("application/pdf"));
-        progressBar = findViewById(R.id.progressBar);
+        loadingLayout = findViewById(R.id.loadingLayout);
+        textViewEmpty = findViewById(R.id.textViewEmpty);
     }
 
     private void loadPdfContentsFromDatabase() {
@@ -97,7 +98,15 @@ public class MainActivity extends AppCompatActivity {
             Collections.reverse(pdfScrollPosition);
             Collections.reverse(pdfWebViewHeight);
 
-            handler.post(() -> pdfAdapter.notifyDataSetChanged());
+            handler.post(() -> {
+                pdfAdapter.notifyDataSetChanged();
+                // Verifica se a lista está vazia e mostra textViewEmpty, se necessário
+                if (pdfNames.isEmpty()) {
+                    textViewEmpty.setVisibility(View.VISIBLE);
+                } else {
+                    textViewEmpty.setVisibility(View.GONE);
+                }
+            });
         });
     }
 
@@ -142,6 +151,15 @@ public class MainActivity extends AppCompatActivity {
                                     imageFile.delete();
                                 }
                             }
+                            // Use um Handler para postar as operações na thread principal
+                            handler.post(() -> {
+                                if (pdfNames.isEmpty()) {
+                                    textViewEmpty.setVisibility(View.VISIBLE);
+                                } else {
+                                    textViewEmpty.setVisibility(View.GONE);
+                                }
+                                pdfAdapter.notifyDataSetChanged();
+                            });
                         });
                     }
                 };
@@ -184,11 +202,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showLoading() {
-        progressBar.setVisibility(View.VISIBLE);
+        loadingLayout.setVisibility(View.VISIBLE);
     }
 
     private void hideLoading() {
-        progressBar.setVisibility(View.GONE);
+        loadingLayout.setVisibility(View.GONE);
     }
 
     private void processPdfContent(Uri uri, String pdfName) {
@@ -260,6 +278,11 @@ public class MainActivity extends AppCompatActivity {
                         pdfScrollPosition.add(0, 0); // Defina a posição de rolagem inicial como 0
                         pdfWebViewHeight.add(0, 0);
                         pdfAdapter.notifyItemInserted(0);
+                        if (pdfNames.isEmpty()) {
+                            textViewEmpty.setVisibility(View.VISIBLE);
+                        } else {
+                            textViewEmpty.setVisibility(View.GONE);
+                        }
                         hideLoading();
                     });
                 }
