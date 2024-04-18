@@ -43,8 +43,8 @@ public class MainActivity extends AppCompatActivity {
     private List<String> pdfNames;
     private PdfAdapter pdfAdapter;
     private List<Integer> pdfScrollPosition;
-    private List<Integer> pdfWebViewHeight;
-    private List<String> pdfImagePaths = new ArrayList<>();
+    private List<String> pdfImagePaths;
+    private List<Integer> pdfProgress;
     private AppDatabase db;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler handler = new Handler(Looper.getMainLooper());
@@ -72,8 +72,8 @@ public class MainActivity extends AppCompatActivity {
         pdfNames = new ArrayList<>();
         pdfImagePaths = new ArrayList<>();
         pdfScrollPosition = new ArrayList<>();
-        pdfWebViewHeight = new ArrayList<>();
-        pdfAdapter = new PdfAdapter(this, pdfNames, pdfImagePaths, pdfScrollPosition, pdfWebViewHeight);
+        pdfProgress = new ArrayList<>();
+        pdfAdapter = new PdfAdapter(this, pdfNames, pdfImagePaths, pdfScrollPosition, pdfProgress);
         recyclerViewPdf = findViewById(R.id.recyclerViewPdf);
         recyclerViewPdf.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewPdf.setAdapter(pdfAdapter);
@@ -90,13 +90,13 @@ public class MainActivity extends AppCompatActivity {
                 pdfNames.add(pdfContent.title);
                 pdfImagePaths.add(pdfContent.imagePath);
                 pdfScrollPosition.add(pdfContent.scrollPosition);
-                pdfWebViewHeight.add(pdfContent.webViewHeight);
+                pdfProgress.add(pdfContent.progress);
             }
             // Invertendo a ordem da lista pdfNames
             Collections.reverse(pdfNames);
             Collections.reverse(pdfImagePaths);
             Collections.reverse(pdfScrollPosition);
-            Collections.reverse(pdfWebViewHeight);
+            Collections.reverse(pdfProgress);
 
             handler.post(() -> {
                 pdfAdapter.notifyDataSetChanged();
@@ -138,8 +138,8 @@ public class MainActivity extends AppCompatActivity {
                         String deletedPdfName = pdfNames.get(position);
                         pdfNames.remove(position);
                         pdfImagePaths.remove(position);
-                        pdfWebViewHeight.remove(position);
                         pdfScrollPosition.remove(position);
+                        pdfProgress.remove(position);
                         pdfAdapter.notifyItemRemoved(position);
                         // Realiza a exclusão no banco de dados e no sistema de arquivos
                         executor.execute(() -> {
@@ -271,7 +271,7 @@ public class MainActivity extends AppCompatActivity {
                     handler.post(() -> {
                         pdfImagePaths.add(0, imageFile.getAbsolutePath());
                         pdfScrollPosition.add(0, 0); // Defina a posição de rolagem inicial como 0
-                        pdfWebViewHeight.add(0, 0);
+                        pdfProgress.add(0,0);
                         pdfAdapter.notifyItemInserted(0);
                         if (pdfNames.isEmpty()) {
                             textViewEmpty.setVisibility(View.VISIBLE);

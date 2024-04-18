@@ -3,6 +3,7 @@ package com.adenabrasil.pdfview;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,16 +21,16 @@ public class PdfAdapter extends RecyclerView.Adapter<PdfAdapter.ViewHolder> {
     private final List<String> pdfNames;
     private final List<String> pdfImagePath;
     private final List<Integer> pdfScrollPosition;
-    private final List<Integer> pdfWebViewHeight;
+    private final List<Integer> pdfProgress;
     private OnPdfClickListener onPdfClickListener;
 
     public PdfAdapter(Context context, List<String> pdfNames, List<String> pdfImagePath,
-                      List<Integer> pdfScrollPosition, List<Integer> pdfWebViewHeight) {
+                      List<Integer> pdfScrollPosition, List<Integer> pdfScale) {
         this.context = context;
         this.pdfNames = pdfNames;
         this.pdfImagePath = pdfImagePath;
         this.pdfScrollPosition = pdfScrollPosition;
-        this.pdfWebViewHeight = pdfWebViewHeight;
+        this.pdfProgress = pdfScale;
     }
 
     public interface OnPdfClickListener {
@@ -63,9 +64,7 @@ public class PdfAdapter extends RecyclerView.Adapter<PdfAdapter.ViewHolder> {
                     holder.imageViewPdf.setImageBitmap(bitmap);
                 }
 
-                // Defina a posição da SeekBar com base na posição de rolagem
-                int scale = 5; // Arrumar scale (salvar)
-                int progress = (int) (((float) pdfScrollPosition.get(position) / (pdfWebViewHeight.get(position)) * scale) * 100);
+                int progress = pdfProgress.get(position);
 
                 holder.seekBar.setProgress(progress);
                 holder.seekBar.setClickable(false);

@@ -86,6 +86,7 @@ public class Pdf extends AppCompatActivity {
             int webViewHeight = (int) ((float) webView.getContentHeight() * webView.getScale()); // Ajuste para escala
             int progress = (int) (((float) scrollY / webViewHeight) * 100);
             seekBar.setProgress(progress);
+            Log.d("progress pdf", "O progresso pdf é: " + progress);
         });
 
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
@@ -120,7 +121,7 @@ public class Pdf extends AppCompatActivity {
                         handler.postDelayed(() -> {
                             webView.scrollTo(0, scrollY);
                             // Atualize a posição da SeekBar com base na posição de rolagem
-                            int webViewHeight = webView.getContentHeight() - webView.getHeight();
+                            int webViewHeight = (int) ((float) webView.getContentHeight() * webView.getScale()); // Ajuste para escala
                             int progress = (int) (((float) scrollY / webViewHeight) * 100);
                             seekBar.setProgress(progress);
                         }, 100);
@@ -187,14 +188,14 @@ public class Pdf extends AppCompatActivity {
         WebView webView = findViewById(R.id.webview);
         if (webView != null) {
             scrollY = webView.getScrollY();
-            int position = webView.getContentHeight() - webView.getHeight();
-            Log.d("DEBUG", "Valor da posição: " + position);
+            int position = seekBar.getProgress();
+            //Log.d("processo pdf", "O processo do pdf é: " + progressBarPosition);
             // Salve a posição de rolagem no banco de dados
             executor.execute(() -> {
                 PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
                 if (pdfContent != null) {
                     pdfContent.scrollPosition = scrollY;
-                    pdfContent.webViewHeight = position;
+                    pdfContent.progress = position;
                     db.pdfContentDao().update(pdfContent);
                     //pdfAdapter.notifyItemChanged(position);
                 }
