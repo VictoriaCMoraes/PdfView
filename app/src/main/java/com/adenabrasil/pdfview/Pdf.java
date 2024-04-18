@@ -109,7 +109,7 @@ public class Pdf extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-
+                view.postDelayed(() -> view.scrollTo(0, scrollY), 100); // Aplica a rolagem após um pequeno atraso
                 // Recupere o PdfContent do banco de dados usando o nome
                 executor.execute(() -> {
                     PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
@@ -157,19 +157,12 @@ public class Pdf extends AppCompatActivity {
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         WebView webView = findViewById(R.id.webview);
-        if (webView != null) {
-            scrollY = webView.getScrollY();
+        SeekBar seekBar = findViewById(R.id.seekBar);
+        if (webView != null && seekBar != null) {
+            int scrollY = webView.getScrollY();
+            int progressBarPosition = seekBar.getProgress();
             outState.putInt("scrollY", scrollY);
-
-            // Salve a posição de rolagem no banco de dados
-            executor.execute(() -> {
-                PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
-                if (pdfContent != null) {
-                    pdfContent.scrollPosition = scrollY;
-                    pdfContent.webViewHeight = webView.getContentHeight() - webView.getHeight();
-                    db.pdfContentDao().update(pdfContent);
-                }
-            });
+            outState.putInt("progressBarPosition", progressBarPosition);
         }
     }
 
