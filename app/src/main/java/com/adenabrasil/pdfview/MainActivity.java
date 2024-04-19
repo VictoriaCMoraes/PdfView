@@ -111,16 +111,36 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setButtonClickListeners() {
-        pdfAdapter.setOnPdfClickListener(position -> {
-            if (position >= 0 && position < pdfNames.size()) {
-                String pdfName = pdfNames.get(position);
-                Intent intent = new Intent(MainActivity.this, Pdf.class);
-                intent.putExtra("pdfName", pdfName);
-                startActivity(intent);
-            } else {
-                Toast.makeText(MainActivity.this, "Conteúdo do PDF inválido", Toast.LENGTH_SHORT).show();
-            }
-        });
+        pdfAdapter.setOnPdfClickListener(this::openPdfAndMoveToTop);
+    }
+
+    private void openPdfAndMoveToTop(int position) {
+        if (position >= 0 && position < pdfNames.size()) {
+            String pdfName = pdfNames.get(position);
+            startActivity(new Intent(MainActivity.this, Pdf.class).putExtra("pdfName", pdfName));
+            moveItemToTop(position);
+        } else {
+            Toast.makeText(MainActivity.this, "Conteúdo do PDF inválido", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void moveItemToTop(int position) {
+        if (position >= 0 && position < pdfNames.size()) {
+            // Remove the item from the current position
+            String itemClicked = pdfNames.remove(position);
+            String imagePath = pdfImagePaths.remove(position);
+            int scrollPosition = pdfScrollPosition.remove(position);
+            int progress = pdfProgress.remove(position);
+
+            // Add the removed item at position 0
+            pdfNames.add(0, itemClicked);
+            pdfImagePaths.add(0, imagePath);
+            pdfScrollPosition.add(0, scrollPosition);
+            pdfProgress.add(0, progress);
+
+            recyclerViewPdf.scrollToPosition(0);
+            pdfAdapter.notifyDataSetChanged(); // Scroll to position 0 to show the item moved to the top
+        }
     }
 
     private void setupItemTouchHelper() {
@@ -133,27 +153,23 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-                        // Remove o item deslizado
+                        // Remove the swiped item
                         int position = viewHolder.getAdapterPosition();
                         String deletedPdfName = pdfNames.get(position);
                         pdfNames.remove(position);
                         pdfImagePaths.remove(position);
                         pdfScrollPosition.remove(position);
                         pdfProgress.remove(position);
-                        // Realiza a exclusão no banco de dados e no sistema de arquivos
+                        // Perform deletion in the database and filesystem
                         executor.execute(() -> {
                             PdfContent deletedPdfContent = db.pdfContentDao().getByTitle(deletedPdfName);
                             if (deletedPdfContent != null) {
                                 db.pdfContentDao().delete(deletedPdfContent);
                                 File imageFile = new File(deletedPdfContent.imagePath);
                             }
-                            // Use um Handler para postar as operações na thread principal
+                            // Use a Handler to post operations on the main thread
                             handler.post(() -> {
-                                if (pdfNames.isEmpty()) {
-                                    textViewEmpty.setVisibility(View.VISIBLE);
-                                } else {
-                                    textViewEmpty.setVisibility(View.GONE);
-                                }
+                                textViewEmpty.setVisibility(pdfNames.isEmpty() ? View.VISIBLE : View.GONE);
                                 pdfAdapter.notifyDataSetChanged();
                             });
                         });
@@ -170,7 +186,7 @@ public class MainActivity extends AppCompatActivity {
                     String pdfName = getFileNameFromUri(uri);
                     if (!pdfNames.contains(pdfName)) {
                         showLoading();
-                        pdfNames.add(0,pdfName);
+                        pdfNames.add(0, pdfName);
                         executor.execute(() -> processPdfContent(uri, pdfName));
                     } else {
                         Toast.makeText(MainActivity.this, "Este PDF já foi adicionado", Toast.LENGTH_SHORT).show();

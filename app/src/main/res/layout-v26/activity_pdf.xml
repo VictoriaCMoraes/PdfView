@@ -41,8 +41,8 @@
             android:layout_height="wrap_content"
             android:layout_gravity="start"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:backgroundTint="#FFFFFF"
-            android:src="?attr/homeAsUpIndicator" />
+            android:src="?attr/homeAsUpIndicator"
+            app:tint="@color/white" />
 
         <TextView
             android:id="@+id/pdfNameTextView"

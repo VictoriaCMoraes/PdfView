@@ -6,8 +6,8 @@
     <color name="primary_color">#1F2631</color>
     <color name="accent_color">#104c6c</color>
     <!-- Para um tema azul -->
-    <color name="item_background">#1F2631</color> <!-- Azul escuro neutro -->
-    <color name="linear_background">#3c4d5f</color> <!-- Azul médio neutro -->
-    <color name="bottom_bar">#104c6c</color>  <!-- Azul claro neutro -->
-    <!--<color name="bottom_bar">#778899</color>  Cinza claro neutro -->
+    <color name="item_background">#051619</color> <!-- Azul escuro neutro -->
+    <color name="linear_background">#1D2E3A</color> <!-- Azul médio neutro -->
+    <color name="bottom_bar">#296178</color>  <!-- Azul claro neutro -->
+    <!--<color name="bottom_bar">#778899</color> 0f3b50 Cinza claro neutro -->
 </resources>

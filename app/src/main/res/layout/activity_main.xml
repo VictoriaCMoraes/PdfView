@@ -52,11 +52,12 @@
         android:background="@android:color/transparent"
         android:contentDescription="Abrir PDF"
         android:drawablePadding="20dp"
-        app:icon="@drawable/mais"
-        app:iconPadding="30dp"
-        app:iconTint="@color/white"
+        android:src="?attr/homeAsUpIndicator"
+        app:icon="@android:drawable/ic_input_add"
+        app:iconSize="30dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintEnd_toEndOf="parent"
+        app:tint="@color/white" />
 
     <TextView
         android:id="@+id/textViewEmpty"
