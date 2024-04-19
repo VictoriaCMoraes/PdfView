@@ -33,8 +33,10 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.parser.PdfTextExtractor;
@@ -229,32 +231,40 @@ public class MainActivity extends AppCompatActivity {
                 if (inputStream != null) {
                     PdfReader reader = new PdfReader(inputStream);
                     int numberOfPages = reader.getNumberOfPages();
+                    ExecutorService executorService = Executors.newFixedThreadPool(4); // Cria um pool de threads
+                    List<Future<String>> futures = new ArrayList<>();
                     for (int i = 1; i <= numberOfPages; i++) {
-                        String pageText = PdfTextExtractor.getTextFromPage(reader, i);
-                        String[] lines = pageText.split("\\n");
-                        StringBuilder paragraph = new StringBuilder();
-                        for (String line : lines) {
-                            line = line.trim();
-                            if (!line.isEmpty()) {
-                                paragraph.append(line).append(" ");
-                                if (line.endsWith(".")) {
-                                    parsedText.append("<p>").append(paragraph).append("</p>");
-                                    paragraph = new StringBuilder();
-                                } else if (line.length() < 40) {
-                                    parsedText.append("<p>").append(paragraph).append("</p>");
-                                    paragraph = new StringBuilder();
+                        final int pageNumber = i;
+                        futures.add(executorService.submit(() -> {
+                            StringBuilder pageTextBuilder = new StringBuilder();
+                            String pageText = PdfTextExtractor.getTextFromPage(reader, pageNumber);
+                            String[] lines = pageText.split("\\n");
+                            StringBuilder paragraph = new StringBuilder();
+                            for (String line : lines) {
+                                line = line.trim();
+                                if (!line.isEmpty()) {
+                                    paragraph.append(line).append(" ");
+                                    if (line.endsWith(".") || line.length() < 40) {
+                                        pageTextBuilder.append("<p>").append(paragraph).append("</p>");
+                                        paragraph.delete(0, paragraph.length());
+                                    }
                                 }
                             }
-                        }
-                        if (paragraph.length() > 0) {
-                            parsedText.append("<p>").append(paragraph).append("</p>");
-                        }
+                            if (paragraph.length() > 0) {
+                                pageTextBuilder.append("<p>").append(paragraph).append("</p>");
+                            }
+                            return pageTextBuilder.toString();
+                        }));
+                    }
+                    for (Future<String> future : futures) {
+                        parsedText.append(future.get());
                     }
                     reader.close();
+                    executorService.shutdown();
                 } else {
                     Log.e("PdfBox-Android-Sample", "InputStream is null");
                 }
-            } catch (IOException e) {
+            } catch (IOException | InterruptedException | ExecutionException e) {
                 Log.e("PdfBox-Android-Sample", "Exception thrown while loading or reading PDF", e);
             }
             // Renderize a primeira página em um Bitmap
@@ -288,11 +298,7 @@ public class MainActivity extends AppCompatActivity {
                         pdfScrollPosition.add(0, 0); // Defina a posição de rolagem inicial como 0
                         pdfProgress.add(0,0);
                         pdfAdapter.notifyDataSetChanged();
-                        if (pdfNames.isEmpty()) {
-                            textViewEmpty.setVisibility(View.VISIBLE);
-                        } else {
-                            textViewEmpty.setVisibility(View.GONE);
-                        }
+                        textViewEmpty.setVisibility(pdfNames.isEmpty() ? View.VISIBLE : View.GONE);
                         hideLoading();
                     });
                     // Rolando para o topo da lista
