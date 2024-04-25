@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.room.Room;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -119,8 +120,12 @@ public class MainActivity extends AppCompatActivity {
     private void openPdfAndMoveToTop(int position) {
         if (position >= 0 && position < pdfNames.size()) {
             String pdfName = pdfNames.get(position);
-            startActivity(new Intent(MainActivity.this, Pdf.class).putExtra("pdfName", pdfName));
-            moveItemToTop(position);
+            int progress = pdfProgress.get(position);
+            Intent intent = new Intent(MainActivity.this, Pdf.class);
+            intent.putExtra("pdfName", pdfName);
+            intent.putExtra("pdfProgress", progress);
+            mStartForResult.launch(intent);
+            handler.postDelayed(() -> moveItemToTop(position), 1000);
         } else {
             Toast.makeText(MainActivity.this, "Conteúdo do PDF inválido", Toast.LENGTH_SHORT).show();
         }
@@ -143,6 +148,30 @@ public class MainActivity extends AppCompatActivity {
             recyclerViewPdf.scrollToPosition(0);
             pdfAdapter.notifyDataSetChanged(); // Scroll to position 0 to show the item moved to the top
         }
+    }
+
+    ActivityResultLauncher<Intent> mStartForResult = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    Intent data = result.getData();
+                    if (data != null) {
+                        String pdfName = data.getStringExtra("pdfName");
+                        int progress = data.getIntExtra("pdfProgress", 0);
+                        int position = findItemByName(pdfName);
+                        pdfProgress.set(position, progress);
+                        pdfAdapter.notifyDataSetChanged();
+                    }
+                }
+            });
+
+    public int findItemByName( String name) {
+        for (int i = 0; i < pdfNames.size(); i++) {
+            if (pdfNames.get(i).equals(name)) {
+                return i;
+            }
+        }
+        return -1; // Retorna -1 se o nome não for encontrado na lista
     }
 
     private void setupItemTouchHelper() {

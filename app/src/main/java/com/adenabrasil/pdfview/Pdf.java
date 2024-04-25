@@ -1,5 +1,7 @@
 package com.adenabrasil.pdfview;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -57,7 +59,7 @@ public class Pdf extends AppCompatActivity {
         pdfNameTextView.setText(pdfName);
 
         ImageButton backButton = findViewById(R.id.backButton);
-        backButton.setOnClickListener(v -> finish());
+        backButton.setOnClickListener(v -> onBackPressed());
 
         // Inicialize o GestureDetector
         gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
@@ -189,7 +191,6 @@ public class Pdf extends AppCompatActivity {
         if (webView != null) {
             scrollY = webView.getScrollY();
             int position = seekBar.getProgress();
-            //Log.d("processo pdf", "O processo do pdf é: " + progressBarPosition);
             // Salve a posição de rolagem no banco de dados
             executor.execute(() -> {
                 PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
@@ -197,9 +198,32 @@ public class Pdf extends AppCompatActivity {
                     pdfContent.scrollPosition = scrollY;
                     pdfContent.progress = position;
                     db.pdfContentDao().update(pdfContent);
-                    //pdfAdapter.notifyItemChanged(position);
                 }
             });
         }
     }
+
+    @Override
+    public void onBackPressed() {
+        WebView webView = findViewById(R.id.webview);
+        if (webView != null) {
+            scrollY = webView.getScrollY();
+            int position = seekBar.getProgress();
+            // Salve a posição de rolagem no banco de dados
+            executor.execute(() -> {
+                PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
+                if (pdfContent != null) {
+                    pdfContent.scrollPosition = scrollY;
+                    pdfContent.progress = position;
+                    db.pdfContentDao().update(pdfContent);
+                }
+            });
+        }
+        Intent resultIntent = new Intent();
+        resultIntent.putExtra("pdfName", pdfName);
+        resultIntent.putExtra("pdfProgress", seekBar.getProgress());
+        setResult(Activity.RESULT_OK, resultIntent);
+        super.onBackPressed();
+    }
+
 }
