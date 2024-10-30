@@ -19,6 +19,7 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 
 import androidx.annotation.ColorInt;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.room.Room;
@@ -54,17 +55,15 @@ public class Pdf extends AppCompatActivity {
         WebView webView = findViewById(R.id.webview);
         seekBar = findViewById(R.id.seekBar);
         toolbar = findViewById(R.id.toolbar);
-
         TextView pdfNameTextView = findViewById(R.id.pdfNameTextView);
         pdfNameTextView.setText(pdfName);
-
         ImageButton backButton = findViewById(R.id.backButton);
-        backButton.setOnClickListener(v -> onBackPressed());
+        backButton.setOnClickListener(v -> handleBackPressed());
 
         // Inicialize o GestureDetector
         gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
-            public boolean onSingleTapConfirmed(MotionEvent e) {
+            public boolean onSingleTapConfirmed(@NonNull MotionEvent e) {
                 if (seekBar.getVisibility() == View.VISIBLE) {
                     seekBar.setVisibility(View.GONE);
                     toolbar.setVisibility(View.GONE);
@@ -118,7 +117,6 @@ public class Pdf extends AppCompatActivity {
                     PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
                     if (pdfContent != null) {
                         scrollY = pdfContent.scrollPosition;
-
                         // Defina a posição de rolagem depois que o conteúdo da WebView for totalmente carregado
                         handler.postDelayed(() -> {
                             webView.scrollTo(0, scrollY);
@@ -144,7 +142,6 @@ public class Pdf extends AppCompatActivity {
                 handler.post(() -> {
                     // Use o conteúdo do PdfContent
                     String pdfContentString = pdfContent.content;
-
                     String hexBackgroundColor = String.format("#%06X", (0xFFFFFF & backgroundColor));
                     boolean isBackgroundBeige = (hexBackgroundColor.equals("#FFFFDF"));
                     String textColor = isBackgroundBeige ? "black" : "white";
@@ -156,8 +153,30 @@ public class Pdf extends AppCompatActivity {
         });
     }
 
+    private void handleBackPressed() {
+        WebView webView = findViewById(R.id.webview);
+        if (webView != null) {
+            scrollY = webView.getScrollY();
+            int position = seekBar.getProgress();
+            // Salve a posição de rolagem no banco de dados
+            executor.execute(() -> {
+                PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
+                if (pdfContent != null) {
+                    pdfContent.scrollPosition = scrollY;
+                    pdfContent.progress = position;
+                    db.pdfContentDao().update(pdfContent);
+                }
+            });
+        }
+        Intent resultIntent = new Intent();
+        resultIntent.putExtra("pdfName", pdfName);
+        resultIntent.putExtra("pdfProgress", seekBar.getProgress());
+        setResult(Activity.RESULT_OK, resultIntent);
+        finish();
+    }
+
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         WebView webView = findViewById(R.id.webview);
         SeekBar seekBar = findViewById(R.id.seekBar);
@@ -205,25 +224,7 @@ public class Pdf extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        WebView webView = findViewById(R.id.webview);
-        if (webView != null) {
-            scrollY = webView.getScrollY();
-            int position = seekBar.getProgress();
-            // Salve a posição de rolagem no banco de dados
-            executor.execute(() -> {
-                PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
-                if (pdfContent != null) {
-                    pdfContent.scrollPosition = scrollY;
-                    pdfContent.progress = position;
-                    db.pdfContentDao().update(pdfContent);
-                }
-            });
-        }
-        Intent resultIntent = new Intent();
-        resultIntent.putExtra("pdfName", pdfName);
-        resultIntent.putExtra("pdfProgress", seekBar.getProgress());
-        setResult(Activity.RESULT_OK, resultIntent);
+        handleBackPressed();
         super.onBackPressed();
     }
-
 }

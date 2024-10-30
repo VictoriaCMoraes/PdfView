@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.room.Room;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
@@ -91,20 +92,22 @@ public class MainActivity extends AppCompatActivity {
         executor.execute(() -> {
             List<PdfContent> pdfContentsList = db.pdfContentDao().getAll();
 
-            // Ordenar pdfContentsList pela última vez que foi aberto (do mais recente para o mais antigo)
-            Collections.sort(pdfContentsList, (a, b) -> Long.compare(b.lastTimeOpened, a.lastTimeOpened));
+            if (pdfContentsList != null && !pdfContentsList.isEmpty()) {
+                for (PdfContent pdfContent : pdfContentsList) {
+                    pdfNames.add(pdfContent.title);
+                    pdfImagePaths.add(pdfContent.imagePath);
+                    pdfScrollPosition.add(pdfContent.scrollPosition);
+                    pdfProgress.add(pdfContent.progress);
+                }
 
-            for (PdfContent pdfContent : pdfContentsList) {
-                pdfNames.add(pdfContent.title);
-                pdfImagePaths.add(pdfContent.imagePath);
-                pdfScrollPosition.add(pdfContent.scrollPosition);
-                pdfProgress.add(pdfContent.progress);
+                // Atualização da UI na thread principal após o carregamento
+                handler.post(() -> {
+                    pdfAdapter.notifyDataSetChanged();
+                    textViewEmpty.setVisibility(pdfNames.isEmpty() ? View.VISIBLE : View.GONE);
+                });
+            } else {
+                handler.post(() -> textViewEmpty.setVisibility(View.VISIBLE));
             }
-
-            handler.post(() -> {
-                pdfAdapter.notifyDataSetChanged();
-                textViewEmpty.setVisibility(pdfNames.isEmpty() ? View.VISIBLE : View.GONE);
-            });
         });
     }
 
@@ -117,7 +120,6 @@ public class MainActivity extends AppCompatActivity {
             String pdfName = pdfNames.get(position);
             int progress = pdfProgress.get(position);
 
-            // Atualizar a hora de abertura
             updateLastTimeOpened(pdfName);
 
             Intent intent = new Intent(MainActivity.this, Pdf.class);
@@ -135,28 +137,26 @@ public class MainActivity extends AppCompatActivity {
         executor.execute(() -> {
             PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
             if (pdfContent != null) {
-                pdfContent.lastTimeOpened = System.currentTimeMillis(); // Atualiza para o horário atual
-                db.pdfContentDao().update(pdfContent); // Certifique-se de ter um método update no seu DAO
+                pdfContent.lastTimeOpened = System.currentTimeMillis();
+                db.pdfContentDao().update(pdfContent);
             }
         });
     }
 
     private void moveItemToTop(int position) {
         if (position >= 0 && position < pdfNames.size()) {
-            // Remove the item from the current position
             String itemClicked = pdfNames.remove(position);
             String imagePath = pdfImagePaths.remove(position);
             int scrollPosition = pdfScrollPosition.remove(position);
             int progress = pdfProgress.remove(position);
 
-            // Add the removed item at position 0
             pdfNames.add(0, itemClicked);
             pdfImagePaths.add(0, imagePath);
             pdfScrollPosition.add(0, scrollPosition);
             pdfProgress.add(0, progress);
 
             recyclerViewPdf.scrollToPosition(0);
-            pdfAdapter.notifyDataSetChanged(); // Scroll to position 0 to show the item moved to the top
+            pdfAdapter.notifyDataSetChanged();
         }
     }
 
@@ -170,7 +170,7 @@ public class MainActivity extends AppCompatActivity {
                         int progress = data.getIntExtra("pdfProgress", 0);
                         int position = findItemByName(pdfName);
                         pdfProgress.set(position, progress);
-                        updateLastTimeOpened(pdfName); // Atualiza a hora ao retornar do PDF
+                        updateLastTimeOpened(pdfName);
                         pdfAdapter.notifyDataSetChanged();
                     }
                 }
@@ -182,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
                 return i;
             }
         }
-        return -1; // Retorna -1 se o nome não for encontrado na lista
+        return -1;
     }
 
     private void setupItemTouchHelper() {
@@ -195,22 +195,20 @@ public class MainActivity extends AppCompatActivity {
 
                     @Override
                     public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-                        // Remove the swiped item
                         int position = viewHolder.getAdapterPosition();
                         String deletedPdfName = pdfNames.get(position);
                         pdfNames.remove(position);
                         pdfImagePaths.remove(position);
                         pdfScrollPosition.remove(position);
                         pdfProgress.remove(position);
-                        // Perform deletion in the database and filesystem
+
                         executor.execute(() -> {
                             PdfContent deletedPdfContent = db.pdfContentDao().getByTitle(deletedPdfName);
                             if (deletedPdfContent != null) {
                                 db.pdfContentDao().delete(deletedPdfContent);
                                 File imageFile = new File(deletedPdfContent.imagePath);
-                                // Se desejar, adicione lógica para excluir o arquivo de imagem do sistema de arquivos
+                                if (imageFile.exists()) imageFile.delete();
                             }
-                            // Use a Handler to post operations on the main thread
                             handler.post(() -> {
                                 textViewEmpty.setVisibility(pdfNames.isEmpty() ? View.VISIBLE : View.GONE);
                                 pdfAdapter.notifyDataSetChanged();
@@ -239,7 +237,7 @@ public class MainActivity extends AppCompatActivity {
 
     private String getFileNameFromUri(Uri uri) {
         String result = null;
-        if (uri != null && uri.getScheme() != null && uri.getScheme().equals("content")) {
+        if (uri != null && "content".equals(uri.getScheme())) {
             try (Cursor cursor = getContentResolver().query(uri, null, null, null, null)) {
                 if (cursor != null && cursor.moveToFirst()) {
                     int nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME);
@@ -247,13 +245,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-        if (result == null) {
-            result = uri.getLastPathSegment();
-        }
-        if (result != null && result.contains(".")) {
-            result = result.substring(0, result.lastIndexOf("."));
-        }
-        return result;
+        return result == null ? uri.getLastPathSegment() : result;
     }
 
     private void showLoading() {
@@ -264,6 +256,7 @@ public class MainActivity extends AppCompatActivity {
         loadingLayout.setVisibility(View.GONE);
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private void processPdfContent(Uri uri, String pdfName) {
         executor.execute(() -> {
             StringBuilder parsedText = new StringBuilder();
