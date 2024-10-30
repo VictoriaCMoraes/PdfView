@@ -23,4 +23,7 @@ public class PdfContent {
 
     @ColumnInfo(name = "progress")
     public int progress;
+
+    @ColumnInfo(name = "last_time_opened")
+    public Long lastTimeOpened;
 }

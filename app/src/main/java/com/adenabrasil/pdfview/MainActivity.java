@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerViewPdf;
     private LinearLayout loadingLayout;
     private TextView textViewEmpty;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -89,26 +90,20 @@ public class MainActivity extends AppCompatActivity {
     private void loadPdfContentsFromDatabase() {
         executor.execute(() -> {
             List<PdfContent> pdfContentsList = db.pdfContentDao().getAll();
+
+            // Ordenar pdfContentsList pela última vez que foi aberto (do mais recente para o mais antigo)
+            Collections.sort(pdfContentsList, (a, b) -> Long.compare(b.lastTimeOpened, a.lastTimeOpened));
+
             for (PdfContent pdfContent : pdfContentsList) {
                 pdfNames.add(pdfContent.title);
                 pdfImagePaths.add(pdfContent.imagePath);
                 pdfScrollPosition.add(pdfContent.scrollPosition);
                 pdfProgress.add(pdfContent.progress);
             }
-            // Invertendo a ordem da lista pdfNames
-            Collections.reverse(pdfNames);
-            Collections.reverse(pdfImagePaths);
-            Collections.reverse(pdfScrollPosition);
-            Collections.reverse(pdfProgress);
 
             handler.post(() -> {
                 pdfAdapter.notifyDataSetChanged();
-                // Verifica se a lista está vazia e mostra textViewEmpty, se necessário
-                if (pdfNames.isEmpty()) {
-                    textViewEmpty.setVisibility(View.VISIBLE);
-                } else {
-                    textViewEmpty.setVisibility(View.GONE);
-                }
+                textViewEmpty.setVisibility(pdfNames.isEmpty() ? View.VISIBLE : View.GONE);
             });
         });
     }
@@ -121,14 +116,29 @@ public class MainActivity extends AppCompatActivity {
         if (position >= 0 && position < pdfNames.size()) {
             String pdfName = pdfNames.get(position);
             int progress = pdfProgress.get(position);
+
+            // Atualizar a hora de abertura
+            updateLastTimeOpened(pdfName);
+
             Intent intent = new Intent(MainActivity.this, Pdf.class);
             intent.putExtra("pdfName", pdfName);
             intent.putExtra("pdfProgress", progress);
             mStartForResult.launch(intent);
+
             handler.postDelayed(() -> moveItemToTop(position), 1000);
         } else {
             Toast.makeText(MainActivity.this, "Conteúdo do PDF inválido", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void updateLastTimeOpened(String pdfName) {
+        executor.execute(() -> {
+            PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
+            if (pdfContent != null) {
+                pdfContent.lastTimeOpened = System.currentTimeMillis(); // Atualiza para o horário atual
+                db.pdfContentDao().update(pdfContent); // Certifique-se de ter um método update no seu DAO
+            }
+        });
     }
 
     private void moveItemToTop(int position) {
@@ -160,12 +170,13 @@ public class MainActivity extends AppCompatActivity {
                         int progress = data.getIntExtra("pdfProgress", 0);
                         int position = findItemByName(pdfName);
                         pdfProgress.set(position, progress);
+                        updateLastTimeOpened(pdfName); // Atualiza a hora ao retornar do PDF
                         pdfAdapter.notifyDataSetChanged();
                     }
                 }
             });
 
-    public int findItemByName( String name) {
+    public int findItemByName(String name) {
         for (int i = 0; i < pdfNames.size(); i++) {
             if (pdfNames.get(i).equals(name)) {
                 return i;
@@ -197,6 +208,7 @@ public class MainActivity extends AppCompatActivity {
                             if (deletedPdfContent != null) {
                                 db.pdfContentDao().delete(deletedPdfContent);
                                 File imageFile = new File(deletedPdfContent.imagePath);
+                                // Se desejar, adicione lógica para excluir o arquivo de imagem do sistema de arquivos
                             }
                             // Use a Handler to post operations on the main thread
                             handler.post(() -> {
