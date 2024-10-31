@@ -1,5 +1,6 @@
 package com.adenabrasil.pdfview;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
@@ -18,6 +19,7 @@ import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -37,6 +39,7 @@ public class Pdf extends AppCompatActivity {
     private GestureDetector gestureDetector;
     private Toolbar toolbar;
 
+    @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -78,13 +81,14 @@ public class Pdf extends AppCompatActivity {
         webView.setOnTouchListener((v, event) -> {
             gestureDetector.onTouchEvent(event);
             if (event.getAction() == MotionEvent.ACTION_UP) {
-                v.performClick();
+                v.performClick(); // Chama performClick() para garantir acessibilidade
             }
-            return false;
+            return false; // Retorna false para que o clique seja processado corretamente
         });
 
         webView.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
-            int webViewHeight = (int) ((float) webView.getContentHeight() * webView.getScale()); // Ajuste para escala
+            float scale = webView.getResources().getDisplayMetrics().density;
+            int webViewHeight = (int) (webView.getContentHeight() * scale); // Ajuste para escala
             int progress = (int) (((float) scrollY / webViewHeight) * 100);
             seekBar.setProgress(progress);
             Log.d("progress pdf", "O progresso pdf é: " + progress);
@@ -94,7 +98,8 @@ public class Pdf extends AppCompatActivity {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
-                    int webViewHeight = (int) ((float) webView.getContentHeight() * webView.getScale()); // Ajuste para escala
+                    float scale = webView.getResources().getDisplayMetrics().density;
+                    int webViewHeight = (int) (webView.getContentHeight() * scale); // Ajuste para escala
                     int scrollY = (int) ((progress / 100.0) * webViewHeight);
                     webView.scrollTo(0, scrollY);
                 }
@@ -121,7 +126,8 @@ public class Pdf extends AppCompatActivity {
                         handler.postDelayed(() -> {
                             webView.scrollTo(0, scrollY);
                             // Atualize a posição da SeekBar com base na posição de rolagem
-                            int webViewHeight = (int) ((float) webView.getContentHeight() * webView.getScale()); // Ajuste para escala
+                            float scale = webView.getResources().getDisplayMetrics().density;
+                            int webViewHeight = (int) (webView.getContentHeight() * scale); // Ajuste para escala
                             int progress = (int) (((float) scrollY / webViewHeight) * 100);
                             seekBar.setProgress(progress);
                         }, 100);
@@ -148,6 +154,14 @@ public class Pdf extends AppCompatActivity {
                     String data = String.format(htmlText, textColor, pdfContentString);
                     webView.loadDataWithBaseURL(null, data, "text/html", "UTF-8", null);
                 });
+            }
+        });
+
+        // Adicione o callback para o botão de voltar
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                handleBackPressed();
             }
         });
     }
@@ -219,11 +233,5 @@ public class Pdf extends AppCompatActivity {
                 }
             });
         }
-    }
-
-    @Override
-    public void onBackPressed() {
-        handleBackPressed();
-        super.onBackPressed();
     }
 }

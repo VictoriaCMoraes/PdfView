@@ -33,7 +33,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -88,6 +87,7 @@ public class MainActivity extends AppCompatActivity {
         textViewEmpty = findViewById(R.id.textViewEmpty);
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private void loadPdfContentsFromDatabase() {
         executor.execute(() -> {
             List<PdfContent> pdfContentsList = db.pdfContentDao().getAll();
@@ -143,6 +143,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     private void moveItemToTop(int position) {
         if (position >= 0 && position < pdfNames.size()) {
             String itemClicked = pdfNames.remove(position);
@@ -160,6 +161,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @SuppressLint("NotifyDataSetChanged")
     ActivityResultLauncher<Intent> mStartForResult = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -197,6 +199,7 @@ public class MainActivity extends AppCompatActivity {
                     public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
                         int position = viewHolder.getAdapterPosition();
                         String deletedPdfName = pdfNames.get(position);
+
                         pdfNames.remove(position);
                         pdfImagePaths.remove(position);
                         pdfScrollPosition.remove(position);
@@ -207,11 +210,14 @@ public class MainActivity extends AppCompatActivity {
                             if (deletedPdfContent != null) {
                                 db.pdfContentDao().delete(deletedPdfContent);
                                 File imageFile = new File(deletedPdfContent.imagePath);
-                                if (imageFile.exists()) imageFile.delete();
+                                if (imageFile.exists()) {
+                                    boolean deleted = imageFile.delete();
+                                    Log.d("MainActivity", "File deleted: " + deleted); // Verifica se a exclusão foi bem-sucedida
+                                }
                             }
                             handler.post(() -> {
                                 textViewEmpty.setVisibility(pdfNames.isEmpty() ? View.VISIBLE : View.GONE);
-                                pdfAdapter.notifyDataSetChanged();
+                                pdfAdapter.notifyItemRemoved(position); // Usar notifyItemRemoved
                             });
                         });
                     }
@@ -245,7 +251,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
-        return result == null ? uri.getLastPathSegment() : result;
+        return result != null ? result : (uri != null ? uri.getLastPathSegment() : null);
     }
 
     private void showLoading() {
@@ -330,8 +336,8 @@ public class MainActivity extends AppCompatActivity {
                     handler.post(() -> {
                         pdfImagePaths.add(0, imageFile.getAbsolutePath());
                         pdfScrollPosition.add(0, 0); // Defina a posição de rolagem inicial como 0
-                        pdfProgress.add(0,0);
-                        pdfAdapter.notifyDataSetChanged();
+                        pdfProgress.add(0, 0);
+                        pdfAdapter.notifyItemInserted(0); // Usar notifyItemInserted
                         textViewEmpty.setVisibility(pdfNames.isEmpty() ? View.VISIBLE : View.GONE);
                         hideLoading();
                     });
