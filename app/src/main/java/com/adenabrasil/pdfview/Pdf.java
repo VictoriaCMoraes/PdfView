@@ -134,6 +134,8 @@ public class Pdf extends AppCompatActivity {
         getTheme().resolveAttribute(android.R.attr.windowBackground, typedValue, true);
         @ColorInt int backgroundColor = typedValue.data;
         webView.setBackgroundColor(backgroundColor);
+        getTheme().resolveAttribute(R.attr.pdfTextColor, typedValue, true);
+        String textColor = String.format("#%06X", (0xFFFFFF & typedValue.data)); // Obtém a cor em formato hexadecimal
 
         executor.execute(() -> {
             // Recupere o PdfContent do banco de dados usando o nome
@@ -142,9 +144,6 @@ public class Pdf extends AppCompatActivity {
                 handler.post(() -> {
                     // Use o conteúdo do PdfContent
                     String pdfContentString = pdfContent.content;
-                    String hexBackgroundColor = String.format("#%06X", (0xFFFFFF & backgroundColor));
-                    boolean isBackgroundBeige = (hexBackgroundColor.equals("#FFFFDF"));
-                    String textColor = isBackgroundBeige ? "black" : "white";
                     String htmlText = "<html><head><style>body {text-align: justify; word-wrap: break-word; font-size: 20px; color: %s;}</style></head><body>%s</body></html>";
                     String data = String.format(htmlText, textColor, pdfContentString);
                     webView.loadDataWithBaseURL(null, data, "text/html", "UTF-8", null);
