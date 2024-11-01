@@ -16,7 +16,9 @@ import android.view.WindowManager;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.SeekBar;
+import androidx.appcompat.widget.SearchView;
 import android.widget.TextView;
 
 import androidx.activity.OnBackPressedCallback;
@@ -39,6 +41,13 @@ public class Pdf extends AppCompatActivity {
     private GestureDetector gestureDetector;
     private Toolbar toolbar;
 
+    private LinearLayout floatButtonBar;
+    private SearchView searchViewFloating;
+    private ImageButton upButton;
+    private ImageButton downButton;
+    private int currentMatchIndex = -1;
+    private int totalMatches = 0;
+
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,11 +57,8 @@ public class Pdf extends AppCompatActivity {
                 WindowManager.LayoutParams.FLAG_FULLSCREEN);
         setContentView(R.layout.activity_pdf);
 
-        // Inicialize o banco de dados
         db = Room.databaseBuilder(getApplicationContext(),
                 AppDatabase.class, "pdf-content-database").build();
-
-        // Obtenha o nome do PDF do Intent
         pdfName = getIntent().getStringExtra("pdfName");
 
         WebView webView = findViewById(R.id.webview);
@@ -63,7 +69,6 @@ public class Pdf extends AppCompatActivity {
         ImageButton backButton = findViewById(R.id.backButton);
         backButton.setOnClickListener(v -> handleBackPressed());
 
-        // Inicialize o GestureDetector
         gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
             public boolean onSingleTapConfirmed(@NonNull MotionEvent e) {
@@ -81,14 +86,14 @@ public class Pdf extends AppCompatActivity {
         webView.setOnTouchListener((v, event) -> {
             gestureDetector.onTouchEvent(event);
             if (event.getAction() == MotionEvent.ACTION_UP) {
-                v.performClick(); // Chama performClick() para garantir acessibilidade
+                v.performClick();
             }
-            return false; // Retorna false para que o clique seja processado corretamente
+            return false;
         });
 
         webView.setOnScrollChangeListener((v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
             float scale = webView.getResources().getDisplayMetrics().density;
-            int webViewHeight = (int) (webView.getContentHeight() * scale); // Ajuste para escala
+            int webViewHeight = (int) (webView.getContentHeight() * scale);
             int progress = (int) (((float) scrollY / webViewHeight) * 100);
             seekBar.setProgress(progress);
             Log.d("progress pdf", "O progresso pdf é: " + progress);
@@ -99,7 +104,7 @@ public class Pdf extends AppCompatActivity {
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
                     float scale = webView.getResources().getDisplayMetrics().density;
-                    int webViewHeight = (int) (webView.getContentHeight() * scale); // Ajuste para escala
+                    int webViewHeight = (int) (webView.getContentHeight() * scale);
                     int scrollY = (int) ((progress / 100.0) * webViewHeight);
                     webView.scrollTo(0, scrollY);
                 }
@@ -116,18 +121,15 @@ public class Pdf extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                view.postDelayed(() -> view.scrollTo(0, scrollY), 100); // Aplica a rolagem após um pequeno atraso
-                // Recupere o PdfContent do banco de dados usando o nome
+                view.postDelayed(() -> view.scrollTo(0, scrollY), 100);
                 executor.execute(() -> {
                     PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
                     if (pdfContent != null) {
                         scrollY = pdfContent.scrollPosition;
-                        // Defina a posição de rolagem depois que o conteúdo da WebView for totalmente carregado
                         handler.postDelayed(() -> {
                             webView.scrollTo(0, scrollY);
-                            // Atualize a posição da SeekBar com base na posição de rolagem
                             float scale = webView.getResources().getDisplayMetrics().density;
-                            int webViewHeight = (int) (webView.getContentHeight() * scale); // Ajuste para escala
+                            int webViewHeight = (int) (webView.getContentHeight() * scale);
                             int progress = (int) (((float) scrollY / webViewHeight) * 100);
                             seekBar.setProgress(progress);
                         }, 100);
@@ -141,14 +143,12 @@ public class Pdf extends AppCompatActivity {
         @ColorInt int backgroundColor = typedValue.data;
         webView.setBackgroundColor(backgroundColor);
         getTheme().resolveAttribute(R.attr.pdfTextColor, typedValue, true);
-        String textColor = String.format("#%06X", (0xFFFFFF & typedValue.data)); // Obtém a cor em formato hexadecimal
+        String textColor = String.format("#%06X", (0xFFFFFF & typedValue.data));
 
         executor.execute(() -> {
-            // Recupere o PdfContent do banco de dados usando o nome
             PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
             if (pdfContent != null) {
                 handler.post(() -> {
-                    // Use o conteúdo do PdfContent
                     String pdfContentString = pdfContent.content;
                     String htmlText = "<html><head><style>body {text-align: justify; word-wrap: break-word; font-size: 20px; color: %s;}</style></head><body>%s</body></html>";
                     String data = String.format(htmlText, textColor, pdfContentString);
@@ -157,81 +157,92 @@ public class Pdf extends AppCompatActivity {
             }
         });
 
-        // Adicione o callback para o botão de voltar
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
                 handleBackPressed();
             }
         });
+
+        floatButtonBar = findViewById(R.id.floatButtonBar);
+        searchViewFloating = findViewById(R.id.searchViewFloating);
+        upButton = findViewById(R.id.upButton);
+        downButton = findViewById(R.id.downButton);
+
+        SearchView searchView = findViewById(R.id.searchView);
+        searchView.setOnSearchClickListener(v -> {
+            toolbar.setVisibility(View.GONE);
+            floatButtonBar.setVisibility(View.VISIBLE);
+            searchViewFloating.requestFocus();
+            searchViewFloating.setIconified(false);
+        });
+
+        searchView.setOnCloseListener(() -> {
+            toolbar.setVisibility(View.VISIBLE);
+            floatButtonBar.setVisibility(View.GONE);
+            clearHighlights();
+            return false;
+        });
+
+        searchViewFloating.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                highlightText(query);
+                return true;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                return false;
+            }
+        });
+
+        upButton.setOnClickListener(v -> {
+            if (totalMatches > 0 && currentMatchIndex > 0) {
+                currentMatchIndex--;
+                webView.findNext(false);
+                updateNavigationButtons();
+            }
+        });
+
+        downButton.setOnClickListener(v -> {
+            if (totalMatches > 0 && currentMatchIndex < totalMatches - 1) {
+                currentMatchIndex++;
+                webView.findNext(true);
+                updateNavigationButtons();
+            }
+        });
+    }
+
+    private void highlightText(String keyword) {
+        WebView webView = findViewById(R.id.webview);
+        webView.findAllAsync(keyword);
+        webView.setFindListener((activeMatchOrdinal, numberOfMatches, isDoneCounting) -> {
+            if (isDoneCounting) {
+                totalMatches = numberOfMatches;
+                currentMatchIndex = activeMatchOrdinal;
+                updateNavigationButtons();
+            }
+        });
+    }
+
+    private void clearHighlights() {
+        WebView webView = findViewById(R.id.webview);
+        webView.clearMatches();
+        totalMatches = 0;
+        currentMatchIndex = -1;
+        updateNavigationButtons();
+    }
+
+    private void updateNavigationButtons() {
+        upButton.setEnabled(currentMatchIndex > 0);
+        downButton.setEnabled(currentMatchIndex < totalMatches - 1);
     }
 
     private void handleBackPressed() {
-        WebView webView = findViewById(R.id.webview);
-        if (webView != null) {
-            scrollY = webView.getScrollY();
-            int position = seekBar.getProgress();
-            // Salve a posição de rolagem no banco de dados
-            executor.execute(() -> {
-                PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
-                if (pdfContent != null) {
-                    pdfContent.scrollPosition = scrollY;
-                    pdfContent.progress = position;
-                    db.pdfContentDao().update(pdfContent);
-                }
-            });
-        }
-        Intent resultIntent = new Intent();
-        resultIntent.putExtra("pdfName", pdfName);
-        resultIntent.putExtra("pdfProgress", seekBar.getProgress());
-        setResult(Activity.RESULT_OK, resultIntent);
+        Intent intent = new Intent();
+        intent.putExtra("scrollY", scrollY);
+        setResult(Activity.RESULT_OK, intent);
         finish();
-    }
-
-    @Override
-    protected void onSaveInstanceState(@NonNull Bundle outState) {
-        super.onSaveInstanceState(outState);
-        WebView webView = findViewById(R.id.webview);
-        SeekBar seekBar = findViewById(R.id.seekBar);
-        if (webView != null && seekBar != null) {
-            int scrollY = webView.getScrollY();
-            int progressBarPosition = seekBar.getProgress();
-            outState.putInt("scrollY", scrollY);
-            outState.putInt("progressBarPosition", progressBarPosition);
-        }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        WebView webView = findViewById(R.id.webview);
-        if (webView != null) {
-            executor.execute(() -> {
-                PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
-                if (pdfContent != null) {
-                    scrollY = pdfContent.scrollPosition;
-                    handler.post(() -> webView.scrollTo(0, scrollY));
-                }
-            });
-        }
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        WebView webView = findViewById(R.id.webview);
-        if (webView != null) {
-            scrollY = webView.getScrollY();
-            int position = seekBar.getProgress();
-            // Salve a posição de rolagem no banco de dados
-            executor.execute(() -> {
-                PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
-                if (pdfContent != null) {
-                    pdfContent.scrollPosition = scrollY;
-                    pdfContent.progress = position;
-                    db.pdfContentDao().update(pdfContent);
-                }
-            });
-        }
     }
 }

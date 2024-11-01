@@ -25,6 +25,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Toolbar para pesquisa -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
@@ -37,27 +38,48 @@
 
         <ImageButton
             android:id="@+id/backButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_gravity="start"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="?attr/homeAsUpIndicator"
-            app:tint="@color/white" />
+            android:contentDescription="@string/back_button_description"
+            app:tint="@color/white"
+            android:padding="8dp" />
 
         <TextView
             android:id="@+id/pdfNameTextView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="30dp"
-            android:textColor="#FFFFFF" />
+            android:layout_marginEnd="50dp"
+            android:text="@string/pdf_name"
+            android:textColor="#FFFFFF"
+            android:maxLines="1"
+            android:ellipsize="end"
+            app:layout_constraintStart_toEndOf="@id/backButton"
+            app:layout_constraintEnd_toStartOf="@id/searchView"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <!-- SearchView para pesquisa de texto -->
+        <androidx.appcompat.widget.SearchView
+            android:id="@+id/searchView"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:layout_gravity="end"
+            android:padding="8dp"
+            android:queryHint="Buscar no texto..."
+            app:goIcon="@drawable/lupa"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/white"
+            android:iconifiedByDefault="true"/>
 
     </androidx.appcompat.widget.Toolbar>
-
     <SeekBar
         android:id="@+id/seekBar"
         android:layout_width="match_parent"
         android:layout_height="50dp"
-        android:layout_alignParentBottom="true"
         android:orientation="horizontal"
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
@@ -68,4 +90,48 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
+    <!-- Barra Flutuante com Botões e SearchView -->
+    <LinearLayout
+        android:id="@+id/floatButtonBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        android:padding="12dp"
+        android:layout_margin="12dp"
+        android:background="@drawable/rounded_background"
+        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <ImageButton
+            android:id="@+id/upButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="12dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/arrow_up_desc"
+            android:src="@drawable/arrow_up"
+            android:scaleType="fitCenter" />
+
+        <ImageButton
+            android:id="@+id/downButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="12dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/arrow_down_desc"
+            android:src="@drawable/arrow_down"
+            android:scaleType="fitCenter" />
+
+        <androidx.appcompat.widget.SearchView
+            android:id="@+id/searchViewFloating"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:queryHint="Buscar no texto..."
+            android:background="@color/gray"
+            app:tint="@color/black"
+            android:iconifiedByDefault="false" />
+    </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>
