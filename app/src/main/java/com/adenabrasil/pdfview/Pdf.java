@@ -45,9 +45,9 @@ public class Pdf extends AppCompatActivity {
     private SearchView searchViewFloating;
     private ImageButton upButton;
     private ImageButton downButton;
-    private ImageButton closeButton; // Adicionado para o botão X
     private int currentMatchIndex = -1;
     private int totalMatches = 0;
+    private TextView itemCountTextView;
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
@@ -69,6 +69,7 @@ public class Pdf extends AppCompatActivity {
         pdfNameTextView.setText(pdfName);
         ImageButton backButton = findViewById(R.id.backButton);
         backButton.setOnClickListener(v -> handleBackPressed());
+        itemCountTextView = findViewById(R.id.itemCountTextView);
 
         gestureDetector = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override
@@ -169,7 +170,8 @@ public class Pdf extends AppCompatActivity {
         searchViewFloating = findViewById(R.id.searchViewFloating);
         upButton = findViewById(R.id.upButton);
         downButton = findViewById(R.id.downButton);
-        closeButton = findViewById(R.id.closeButton); // Inicialização do botão X
+        // Adicionado para o botão X
+        ImageButton closeButton = findViewById(R.id.closeButton); // Inicialização do botão X
 
         SearchView searchView = findViewById(R.id.searchView);
         searchView.setOnSearchClickListener(v -> {
@@ -178,39 +180,43 @@ public class Pdf extends AppCompatActivity {
             searchViewFloating.setIconified(false);
         });
 
-        searchView.setOnCloseListener(() -> {
-            toolbar.setVisibility(View.VISIBLE);
-            floatButtonBar.setVisibility(View.GONE);
-            clearHighlights();
-            return false;
-        });
-
         searchViewFloating.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
+                // Ao submeter, pesquisa e destaca o texto
                 highlightText(query);
                 return true;
             }
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                return false;
+                // Atualiza os resultados conforme o texto é alterado
+                highlightText(newText);
+                return true;
             }
         });
 
         upButton.setOnClickListener(v -> {
-            if (totalMatches > 0 && currentMatchIndex > 0) {
+            if (totalMatches > 0) {
                 currentMatchIndex--;
+                if (currentMatchIndex < 0) {
+                    currentMatchIndex = totalMatches - 1; // Volta para o último item se passar do primeiro
+                }
                 webView.findNext(false);
                 updateNavigationButtons();
+                updateItemCountText();
             }
         });
 
         downButton.setOnClickListener(v -> {
-            if (totalMatches > 0 && currentMatchIndex < totalMatches - 1) {
+            if (totalMatches > 0) {
                 currentMatchIndex++;
+                if (currentMatchIndex >= totalMatches) {
+                    currentMatchIndex = 0; // Volta para o primeiro item se passar do último
+                }
                 webView.findNext(true);
                 updateNavigationButtons();
+                updateItemCountText();
             }
         });
 
@@ -224,14 +230,21 @@ public class Pdf extends AppCompatActivity {
 
     private void highlightText(String keyword) {
         WebView webView = findViewById(R.id.webview);
-        webView.findAllAsync(keyword);
+        webView.findAllAsync(keyword); // Encontra todos os itens enquanto o usuário digita
         webView.setFindListener((activeMatchOrdinal, numberOfMatches, isDoneCounting) -> {
             if (isDoneCounting) {
                 totalMatches = numberOfMatches;
-                currentMatchIndex = activeMatchOrdinal;
+                currentMatchIndex = (numberOfMatches > 0) ? activeMatchOrdinal : -1;
+                updateItemCountDisplay();
                 updateNavigationButtons();
             }
         });
+    }
+
+    @SuppressLint("DefaultLocale")
+    private void updateItemCountDisplay() {
+        TextView itemCountTextView = findViewById(R.id.itemCountTextView);
+        itemCountTextView.setText(String.format("%d/%d", currentMatchIndex + 1, totalMatches));
     }
 
     private void clearHighlights() {
@@ -240,6 +253,7 @@ public class Pdf extends AppCompatActivity {
         totalMatches = 0;
         currentMatchIndex = -1;
         updateNavigationButtons();
+        updateItemCountDisplay();
     }
 
     private void updateNavigationButtons() {
@@ -247,10 +261,77 @@ public class Pdf extends AppCompatActivity {
         downButton.setEnabled(currentMatchIndex < totalMatches - 1);
     }
 
-    private void handleBackPressed() {
-        Intent intent = new Intent();
-        intent.putExtra("scrollY", scrollY);
-        setResult(Activity.RESULT_OK, intent);
+    @SuppressLint("SetTextI18n")
+    private void updateItemCountText() {
+        itemCountTextView.setText((currentMatchIndex + 1) + "/" + totalMatches);
+    }
+
+        private void handleBackPressed() {
+        WebView webView = findViewById(R.id.webview);
+        if (webView != null) {
+            scrollY = webView.getScrollY();
+            int position = seekBar.getProgress();
+            // Salve a posição de rolagem no banco de dados
+            executor.execute(() -> {
+                PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
+                if (pdfContent != null) {
+                    pdfContent.scrollPosition = scrollY;
+                    pdfContent.progress = position;
+                    db.pdfContentDao().update(pdfContent);
+                }
+            });
+        }
+        Intent resultIntent = new Intent();
+        resultIntent.putExtra("pdfName", pdfName);
+        resultIntent.putExtra("pdfProgress", seekBar.getProgress());
+        setResult(Activity.RESULT_OK, resultIntent);
         finish();
+    }
+
+    @Override
+    protected void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        WebView webView = findViewById(R.id.webview);
+        SeekBar seekBar = findViewById(R.id.seekBar);
+        if (webView != null && seekBar != null) {
+            int scrollY = webView.getScrollY();
+            int progressBarPosition = seekBar.getProgress();
+            outState.putInt("scrollY", scrollY);
+            outState.putInt("progressBarPosition", progressBarPosition);
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        WebView webView = findViewById(R.id.webview);
+        if (webView != null) {
+            executor.execute(() -> {
+                PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
+                if (pdfContent != null) {
+                    scrollY = pdfContent.scrollPosition;
+                    handler.post(() -> webView.scrollTo(0, scrollY));
+                }
+            });
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        WebView webView = findViewById(R.id.webview);
+        if (webView != null) {
+            scrollY = webView.getScrollY();
+            int position = seekBar.getProgress();
+            // Salve a posição de rolagem no banco de dados
+            executor.execute(() -> {
+                PdfContent pdfContent = db.pdfContentDao().getByTitle(pdfName);
+                if (pdfContent != null) {
+                    pdfContent.scrollPosition = scrollY;
+                    pdfContent.progress = position;
+                    db.pdfContentDao().update(pdfContent);
+                }
+            });
+        }
     }
 }

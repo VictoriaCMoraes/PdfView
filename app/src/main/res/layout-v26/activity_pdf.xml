@@ -72,10 +72,11 @@
             app:goIcon="@drawable/lupa"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:tint="@color/white"
-            android:iconifiedByDefault="true"/>
-
+            android:iconifiedByDefault="false"
+            android:focusable="false"
+            android:focusableInTouchMode="false"/>
     </androidx.appcompat.widget.Toolbar>
+
     <SeekBar
         android:id="@+id/seekBar"
         android:layout_width="match_parent"
@@ -95,7 +96,7 @@
         android:id="@+id/floatButtonBar"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:visibility="gone"
         android:paddingLeft="12dp"
         android:paddingRight="12dp"
@@ -103,60 +104,77 @@
         android:background="@drawable/rounded_background"
         app:layout_constraintTop_toBottomOf="@id/toolbar"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:gravity="center"> <!-- Adicionado para centralizar os botões -->
+        app:layout_constraintEnd_toEndOf="parent">
 
+        <!-- SearchView -->
         <androidx.appcompat.widget.SearchView
             android:id="@+id/searchViewFloating"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
             android:queryHint="Buscar no texto..."
             android:background="@color/gray"
             app:tint="@color/black"
-            android:iconifiedByDefault="true"
-            app:iconifiedByDefault="true"
+            android:iconifiedByDefault="false"
+            app:iconifiedByDefault="false"
             app:searchIcon="@null"
-            app:closeIcon="@null"/>
+            app:closeIcon="@null" />
 
-        <TextView
-            android:layout_width="wrap_content"
+        <!-- Segunda linha com botões e contagem de itens -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="|"
-            android:textColor="#aaaaaa"
-            android:textSize="24sp"
-            android:layout_gravity="center_vertical"
-            android:paddingStart="8dp"
-            android:paddingEnd="8dp" />
+            android:orientation="horizontal"
+            android:gravity="center"
+            android:paddingTop="8dp"> <!-- Espaçamento para separar da SearchView -->
 
-        <ImageButton
-            android:id="@+id/upButton"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_marginEnd="12dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/arrow_up_desc"
-            android:scaleType="fitCenter"
-            android:src="@drawable/arrow_up" />
+            <!-- Contagem de itens -->
+            <TextView
+                android:id="@+id/itemCountTextView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:paddingEnd="8dp"
+                android:text="0/0" /> <!-- Inicializa com "0/0" -->
 
-        <ImageButton
-            android:id="@+id/downButton"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_marginEnd="12dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/arrow_down_desc"
-            android:src="@drawable/arrow_down"
-            android:scaleType="fitCenter" />
+            <!-- Divisória -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="|"
+                android:textSize="18sp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp" />
 
-        <ImageButton
-            android:id="@+id/closeButton"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/close_button_desc"
-            android:scaleType="fitCenter"
-            android:src="@drawable/close" />
+            <!-- Botões de navegação -->
+            <ImageButton
+                android:id="@+id/upButton"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/arrow_up_desc"
+                android:src="@drawable/arrow_up"
+                android:scaleType="fitCenter" />
+
+            <ImageButton
+                android:id="@+id/downButton"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_marginEnd="8dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/arrow_down_desc"
+                android:src="@drawable/arrow_down"
+                android:scaleType="fitCenter" />
+
+            <ImageButton
+                android:id="@+id/closeButton"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/close_button_desc"
+                android:scaleType="fitCenter"
+                android:src="@drawable/close" />
+        </LinearLayout>
     </LinearLayout>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
