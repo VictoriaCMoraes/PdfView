@@ -97,32 +97,14 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:visibility="gone"
-        android:padding="12dp"
+        android:paddingLeft="12dp"
+        android:paddingRight="12dp"
         android:layout_margin="12dp"
         android:background="@drawable/rounded_background"
         app:layout_constraintTop_toBottomOf="@id/toolbar"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <ImageButton
-            android:id="@+id/upButton"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginEnd="12dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/arrow_up_desc"
-            android:src="@drawable/arrow_up"
-            android:scaleType="fitCenter" />
-
-        <ImageButton
-            android:id="@+id/downButton"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginEnd="12dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/arrow_down_desc"
-            android:src="@drawable/arrow_down"
-            android:scaleType="fitCenter" />
+        app:layout_constraintEnd_toEndOf="parent"
+        android:gravity="center"> <!-- Adicionado para centralizar os botões -->
 
         <androidx.appcompat.widget.SearchView
             android:id="@+id/searchViewFloating"
@@ -132,6 +114,49 @@
             android:queryHint="Buscar no texto..."
             android:background="@color/gray"
             app:tint="@color/black"
-            android:iconifiedByDefault="false" />
+            android:iconifiedByDefault="true"
+            app:iconifiedByDefault="true"
+            app:searchIcon="@null"
+            app:closeIcon="@null"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="|"
+            android:textColor="#aaaaaa"
+            android:textSize="24sp"
+            android:layout_gravity="center_vertical"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp" />
+
+        <ImageButton
+            android:id="@+id/upButton"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginEnd="12dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/arrow_up_desc"
+            android:scaleType="fitCenter"
+            android:src="@drawable/arrow_up" />
+
+        <ImageButton
+            android:id="@+id/downButton"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginEnd="12dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/arrow_down_desc"
+            android:src="@drawable/arrow_down"
+            android:scaleType="fitCenter" />
+
+        <ImageButton
+            android:id="@+id/closeButton"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/close_button_desc"
+            android:scaleType="fitCenter"
+            android:src="@drawable/close" />
     </LinearLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>

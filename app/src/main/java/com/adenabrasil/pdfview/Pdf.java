@@ -45,6 +45,7 @@ public class Pdf extends AppCompatActivity {
     private SearchView searchViewFloating;
     private ImageButton upButton;
     private ImageButton downButton;
+    private ImageButton closeButton; // Adicionado para o botão X
     private int currentMatchIndex = -1;
     private int totalMatches = 0;
 
@@ -168,10 +169,10 @@ public class Pdf extends AppCompatActivity {
         searchViewFloating = findViewById(R.id.searchViewFloating);
         upButton = findViewById(R.id.upButton);
         downButton = findViewById(R.id.downButton);
+        closeButton = findViewById(R.id.closeButton); // Inicialização do botão X
 
         SearchView searchView = findViewById(R.id.searchView);
         searchView.setOnSearchClickListener(v -> {
-            toolbar.setVisibility(View.GONE);
             floatButtonBar.setVisibility(View.VISIBLE);
             searchViewFloating.requestFocus();
             searchViewFloating.setIconified(false);
@@ -211,6 +212,13 @@ public class Pdf extends AppCompatActivity {
                 webView.findNext(true);
                 updateNavigationButtons();
             }
+        });
+
+        // Lógica para o botão X
+        closeButton.setOnClickListener(v -> {
+            floatButtonBar.setVisibility(View.GONE);
+            searchViewFloating.setQuery("", false);
+            clearHighlights();
         });
     }
 
