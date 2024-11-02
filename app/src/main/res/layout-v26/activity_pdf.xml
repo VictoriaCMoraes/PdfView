@@ -57,24 +57,22 @@
             android:textColor="#FFFFFF"
             android:maxLines="1"
             android:ellipsize="end"
-            app:layout_constraintStart_toEndOf="@id/backButton"
-            app:layout_constraintEnd_toStartOf="@id/searchView"
+            app:layout_constraintEnd_toStartOf="@id/backButton"
+            app:layout_constraintStart_toEndOf="@id/searchView"
             app:layout_constraintTop_toTopOf="parent" />
 
         <!-- SearchView para pesquisa de texto -->
-        <androidx.appcompat.widget.SearchView
+        <ImageButton
             android:id="@+id/searchView"
             android:layout_width="50dp"
             android:layout_height="50dp"
             android:layout_gravity="end"
-            android:padding="8dp"
-            android:queryHint="Buscar no texto..."
-            app:goIcon="@drawable/lupa"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            android:iconifiedByDefault="false"
-            android:focusable="false"
-            android:focusableInTouchMode="false"/>
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/search_button_desc"
+            android:paddingEnd="8dp"
+            android:src="?android:attr/actionModeWebSearchDrawable"
+            app:tint="@color/white"
+            tools:ignore="RtlSymmetry" />
     </androidx.appcompat.widget.Toolbar>
 
     <SeekBar
@@ -134,7 +132,8 @@
                 android:layout_height="wrap_content"
                 android:textSize="16sp"
                 android:paddingEnd="8dp"
-                android:text="0/0" /> <!-- Inicializa com "0/0" -->
+                android:text="0/0"
+                tools:ignore="HardcodedText,RtlSymmetry" /> <!-- Inicializa com "0/0" -->
 
             <!-- Divisória -->
             <TextView
@@ -143,7 +142,8 @@
                 android:text="|"
                 android:textSize="18sp"
                 android:paddingStart="8dp"
-                android:paddingEnd="8dp" />
+                android:paddingEnd="8dp"
+                tools:ignore="HardcodedText" />
 
             <!-- Botões de navegação -->
             <ImageButton

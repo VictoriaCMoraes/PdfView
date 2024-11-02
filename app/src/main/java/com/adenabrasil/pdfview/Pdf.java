@@ -173,8 +173,8 @@ public class Pdf extends AppCompatActivity {
         // Adicionado para o botão X
         ImageButton closeButton = findViewById(R.id.closeButton); // Inicialização do botão X
 
-        SearchView searchView = findViewById(R.id.searchView);
-        searchView.setOnSearchClickListener(v -> {
+        ImageButton searchView = findViewById(R.id.searchView);
+        searchView.setOnClickListener(v -> {
             floatButtonBar.setVisibility(View.VISIBLE);
             searchViewFloating.requestFocus();
             searchViewFloating.setIconified(false);
